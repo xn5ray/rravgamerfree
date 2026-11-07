@@ -1,0 +1,74 @@
+'use strict';
+
+const TYPE_PL = { attack: 'Atak', skill: 'Umiejętność', power: 'Moc' };
+const ROWS = 15;
+
+/* ---------- Karty ----------
+   Pola: cost, type, rarity, icon, dmg, hits, aoe, block, vuln, weak, str, draw,
+   energy, selfdmg, ritual, plating, thorns, exhaust. `up` nadpisuje pola po ulepszeniu. */
+const CARDS = {
+  cios:       { name: 'Cios',               type: 'attack', cost: 1, rarity: 'start',    icon: '🗡️', dmg: 6,  up: { dmg: 9 } },
+  gard:       { name: 'Gard',               type: 'skill',  cost: 1, rarity: 'start',    icon: '🛡️', block: 5, up: { block: 8 } },
+  uderzenie:  { name: 'Uderzenie latarnią', type: 'attack', cost: 2, rarity: 'start',    icon: '🔨', dmg: 8, vuln: 2, up: { dmg: 10, vuln: 3 } },
+
+  podwojne:   { name: 'Podwójne cięcie',    type: 'attack', cost: 1, rarity: 'common',   icon: '⚔️', dmg: 5, hits: 2, up: { dmg: 7 } },
+  wichura:    { name: 'Wichura',            type: 'attack', cost: 1, rarity: 'common',   icon: '🌪️', dmg: 8, aoe: true, up: { dmg: 11 } },
+  harpun:     { name: 'Rzut harpunem',      type: 'attack', cost: 1, rarity: 'common',   icon: '🔱', dmg: 7, draw: 1, up: { dmg: 10 } },
+  mgla:       { name: 'Mgła',               type: 'attack', cost: 2, rarity: 'common',   icon: '🌫️', dmg: 6, aoe: true, weak: 1, up: { dmg: 9, weak: 2 } },
+  zwinnosc:   { name: 'Zwinność',           type: 'skill',  cost: 1, rarity: 'common',   icon: '🤸', block: 5, draw: 1, up: { block: 8 } },
+  oddech:     { name: 'Głęboki oddech',     type: 'skill',  cost: 0, rarity: 'common',   icon: '🫁', draw: 2, up: { draw: 3 } },
+  sygnal:     { name: 'Sygnał świetlny',    type: 'skill',  cost: 1, rarity: 'common',   icon: '🔦', vuln: 2, weak: 2, up: { vuln: 3, weak: 3 } },
+
+  bastion:    { name: 'Bastion',            type: 'skill',  cost: 2, rarity: 'uncommon', icon: '🏰', block: 14, up: { block: 19 } },
+  zelazna:    { name: 'Żelazna pięść',      type: 'attack', cost: 2, rarity: 'uncommon', icon: '👊', dmg: 14, up: { dmg: 19 } },
+  seria:      { name: 'Seria',              type: 'attack', cost: 1, rarity: 'uncommon', icon: '💥', dmg: 3, hits: 4, up: { dmg: 4 } },
+  przyplyw:   { name: 'Przypływ',           type: 'skill',  cost: 0, rarity: 'uncommon', icon: '🌊', energy: 2, exhaust: true, up: { energy: 3 } },
+  ofiara:     { name: 'Ofiara',             type: 'skill',  cost: 0, rarity: 'uncommon', icon: '🩸', selfdmg: 3, energy: 2, up: { selfdmg: 2 } },
+  wzmocnienie:{ name: 'Wzmocnienie',        type: 'skill',  cost: 1, rarity: 'uncommon', icon: '💪', str: 2, exhaust: true, up: { str: 3 } },
+
+  rytual:     { name: 'Rytuał',             type: 'power',  cost: 1, rarity: 'rare',     icon: '🕯️', ritual: 1, up: { cost: 0 } },
+  sol:        { name: 'Zbroja z soli',      type: 'power',  cost: 1, rarity: 'rare',     icon: '🧂', plating: 3, up: { plating: 5 } },
+  ciernie:    { name: 'Rafa kolców',        type: 'power',  cost: 1, rarity: 'rare',     icon: '🪸', thorns: 3, up: { thorns: 5 } },
+  fala:       { name: 'Fala przypływu',     type: 'attack', cost: 2, rarity: 'rare',     icon: '🌊', dmg: 18, aoe: true, exhaust: true, up: { dmg: 24 } }
+};
+
+const STARTER_DECK = ['cios','cios','cios','cios','cios','gard','gard','gard','gard','uderzenie'];
+const CARD_PRICE = { common: 50, uncommon: 75, rare: 150 };
+
+/* ---------- Wrogowie ---------- */
+const ENEMIES = {
+  krab:      { name: 'Krab pustelnik',    icon: '🦀', hp: [20, 24], moves: [{ dmg: 7 }, { block: 8 }, { dmg: 9 }] },
+  meduza:    { name: 'Meduza',            icon: '🪼', hp: [12, 16], moves: [{ dmg: 4, weak: 1 }, { dmg: 6 }] },
+  mewa:      { name: 'Mewa',              icon: '🐦', hp: [9, 12],  moves: [{ dmg: 5 }, { dmg: 3, hits: 2 }] },
+  syrena:    { name: 'Syrena',            icon: '🧜', hp: [26, 30], moves: [{ vuln: 2, weak: 1 }, { dmg: 8 }, { dmg: 11 }] },
+  szkielet:  { name: 'Marynarz widmo',    icon: '💀', hp: [38, 44], moves: [{ dmg: 10 }, { block: 9 }, { dmg: 5, hits: 2 }] },
+  osmiornica:{ name: 'Ośmiornica',        icon: '🐙', hp: [32, 36], moves: [{ dmg: 4, hits: 3 }, { weak: 2, vuln: 1 }, { dmg: 12 }] },
+  rekin:     { name: 'Rekin',             icon: '🦈', hp: [28, 32], moves: [{ str: 2 }, { dmg: 9 }, { dmg: 9 }] },
+  topielec:  { name: 'Kapitan Topielec',  icon: '☠️', hp: [68, 74], fixed: true, moves: [{ str: 3, block: 8 }, { dmg: 14 }, { dmg: 7, hits: 2 }, { dmg: 14 }] },
+  straznik:  { name: 'Kamienny Strażnik', icon: '🗿', hp: [78, 84], fixed: true, moves: [{ block: 14 }, { dmg: 18 }, { dmg: 6, weak: 2, vuln: 2 }] },
+  serce:     { name: 'Serce Głębiny',     icon: '🫀', hp: [150, 150], fixed: true, moves: [{ dmg: 12 }, { str: 3, block: 12 }, { dmg: 5, hits: 4 }, { dmg: 8, weak: 2, vuln: 2 }] }
+};
+
+const ENC_EASY = [['krab'], ['meduza', 'meduza'], ['mewa', 'mewa', 'mewa'], ['meduza', 'krab']];
+const ENC_HARD = [['syrena'], ['szkielet'], ['osmiornica'], ['rekin', 'meduza'], ['syrena', 'mewa'], ['krab', 'krab', 'mewa'], ['szkielet', 'meduza']];
+const ELITES = ['topielec', 'straznik'];
+
+/* ---------- Relikty ---------- */
+const RELICS = {
+  pierscien: { name: 'Pierścień latarnika', icon: '💍', desc: 'Po każdej walce lecz 6 HP.', rarity: 'start' },
+  kotwica:   { name: 'Kotwica',             icon: '⚓', desc: 'Zaczynasz każdą walkę z 10 pancerza.' },
+  zab:       { name: 'Ząb rekina',          icon: '🦷', desc: 'Zaczynasz każdą walkę z 1 Siły.' },
+  muszla:    { name: 'Muszla',              icon: '🐚', desc: 'Dobierasz o 1 kartę więcej na turę.' },
+  sakiewka:  { name: 'Sakiewka',            icon: '👛', desc: 'Dostajesz o 10 złota więcej za każdą walkę.' },
+  perla:     { name: 'Czarna perła',        icon: '⚫', desc: 'Zyskujesz 10 maks. HP.' },
+  lampa:     { name: 'Lampa sztormowa',     icon: '🏮', desc: 'Zyskujesz 1 energii na turę.' }
+};
+
+/* ---------- Mikstury ---------- */
+const POTIONS = {
+  zdrowie: { name: 'Eliksir zdrowia',   icon: '🧪', desc: 'Lecz 15 HP.' },
+  sila:    { name: 'Fiolka siły',       icon: '💪', desc: 'Zyskaj 2 Siły do końca walki.' },
+  tarcza:  { name: 'Mikstura tarczy',   icon: '🛡️', desc: 'Zyskaj 12 pancerza.' },
+  energia: { name: 'Tonik energii',     icon: '⚡', desc: 'Zyskaj 2 energii.' },
+  ogien:   { name: 'Butelka ognia',     icon: '🔥', desc: 'Zadaj 12 obrażeń wszystkim wrogom.' }
+};
