@@ -33,9 +33,11 @@ function startCombat(kind) {
     kind, enemies: ids.map(mkEnemy),
     draw: shuffle(G.deck.map(c => ({ ...c }))), hand: [], discard: [], exhaust: [],
     energy: 0, maxEnergy: 3 + (hasRelic('lampa') ? 1 : 0),
-    block: 0, st: { str: hasRelic('zab') ? 1 : 0, weak: 0, vuln: 0, ritual: 0, plating: 0, thorns: 0 },
+    block: 0, st: { str: (hasRelic('zab') ? 1 : 0) + (hasRelic('rum') ? 2 : 0), weak: 0, vuln: 0, ritual: 0, plating: 0, thorns: hasRelic('beczka') ? 2 : 0 },
     turn: 0, selected: null, phase: 'player', busy: false, over: false
   };
+  if (hasRelic('rum')) loseHpSafe(3);
+  if (hasRelic('dzwon')) C.enemies.forEach(e => { e.st.weak += 1; e.st.vuln += 1; });
   startTurn();
 }
 
@@ -43,9 +45,9 @@ function startTurn() {
   C.turn++;
   C.block = (C.turn === 1 && hasRelic('kotwica')) ? 10 : 0;
   C.st.str += C.st.ritual;
-  C.energy = C.maxEnergy;
+  C.energy = C.maxEnergy + (hasRelic('zegar') && C.turn % 3 === 0 ? 1 : 0);
   C.phase = 'player';
-  drawCards(5 + (hasRelic('muszla') ? 1 : 0));
+  drawCards(5 + (hasRelic('muszla') ? 1 : 0) + (C.turn === 1 && hasRelic('kompas') ? 2 : 0));
   renderCombat();
 }
 
@@ -86,7 +88,7 @@ function resolveCard(d, target) {
   }
   targets.forEach(t => {
     if (t.dead) return;
-    if (d.vuln) t.st.vuln += d.vuln;
+    if (d.vuln) t.st.vuln += d.vuln + (hasRelic('soczewka') ? 1 : 0);
     if (d.weak) t.st.weak += d.weak;
   });
   if (d.str) C.st.str += d.str;
@@ -106,6 +108,7 @@ function playCard(i, target) {
   C.hand.splice(i, 1);
   C.selected = null;
   resolveCard(d, target);
+  if (d.type === 'attack' && hasRelic('lancuch')) { C.block += 1; floatAt($('#player'), '+1', 'blk'); }
   if (d.type !== 'power') (d.exhaust ? C.exhaust : C.discard).push(inst);
   renderCombat();
   checkEnd();
@@ -161,6 +164,10 @@ function enemyAct(e) {
   const m = e.intent;
   if (m.block) e.block += m.block;
   if (m.str) e.st.str += m.str;
+  if (m.heal) {
+    e.hp = Math.min(e.max, e.hp + m.heal);
+    floatAt(enemyEl(e), `+${m.heal}`, 'heal');
+  }
   if (m.dmg) {
     for (let i = 0; i < (m.hits || 1); i++) {
       damagePlayer(calcDmg(m.dmg, e.st, C.st));
@@ -181,6 +188,8 @@ async function endTurn() {
   C.busy = true;
   C.selected = null;
   if (C.st.plating) C.block += C.st.plating;
+  if (hasRelic('siec')) C.block += C.hand.length;
+  if (hasRelic('zagiel') && C.energy >= 2) C.block += 8;
   if (C.st.weak > 0) C.st.weak--;
   if (C.st.vuln > 0) C.st.vuln--;
   C.discard.push(...C.hand);
@@ -212,6 +221,13 @@ async function endTurn() {
 /* ---------- Koniec walki ---------- */
 function checkEnd() {
   if (C.over) return true;
+  if (G.hp <= 0 && hasRelic('pas') && !G.pasUsed) {
+    G.pasUsed = true;
+    G.hp = Math.min(G.max, 15);
+    toast('Pas ratunkowy cię uratował!');
+    renderCombat();
+    return false;
+  }
   if (G.hp <= 0) {
     G.hp = 0; C.over = true;
     renderCombat();
@@ -229,6 +245,7 @@ function checkEnd() {
 
 function winCombat() {
   if (hasRelic('pierscien')) heal(6);
+  if (hasRelic('lza')) { G.max += 2; G.hp += 2; }
   const kind = C.kind;
   if (kind === 'boss') { showEnd(true); return; }
   let gold = kind === 'elite' ? rnd(25, 35) : rnd(10, 20);
@@ -237,7 +254,7 @@ function winCombat() {
   const rewards = {
     gold,
     cards: cardChoices(3, kind === 'elite'),
-    potion: Math.random() < (kind === 'elite' ? 0.6 : 0.35) ? pick(Object.keys(POTIONS)) : null,
+    potion: Math.random() < (kind === 'elite' ? 0.6 : 0.35) + (hasRelic('mapa') ? 0.25 : 0) ? pick(Object.keys(POTIONS)) : null,
     relic: kind === 'elite' ? randomRelic() : null,
     taken: false
   };
@@ -271,6 +288,7 @@ function intentHtml(e) {
   }
   if (m.block) parts.push(`🛡️ ${m.block}`);
   if (m.str) parts.push(`⬆️ ${m.str}`);
+  if (m.heal) parts.push(`💚 ${m.heal}`);
   if (m.weak || m.vuln) parts.push('☠️');
   return parts.join(' ');
 }

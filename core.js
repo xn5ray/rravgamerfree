@@ -89,6 +89,7 @@ function heal(n) { G.hp = Math.min(G.max, G.hp + n); }
 function gainRelic(id) {
   G.relics.push(id);
   if (id === 'perla') { G.max += 10; G.hp += 10; }
+  if (id === 'kufer') G.gold += 60;
 }
 
 function randomRelic() {
