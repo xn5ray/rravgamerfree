@@ -43,7 +43,12 @@ function cardText(d) {
   if (d.selfdmg) p.push(`Strać <b>${d.selfdmg}</b> HP.`);
   if (d.energy) p.push(`Zyskaj <b>${d.energy}</b> energii.`);
   if (d.block) p.push(`Zyskaj <b>${d.block}</b> pancerza.`);
+  if (d.heal) p.push(`Lecz <b>${d.heal}</b> HP.`);
+  if (d.doubleBlock) p.push('Podwój pancerz.');
+  if (d.blockDmg) p.push('Zadaj obrażenia równe pancerzowi.');
   if (d.dmg) p.push(`Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
+  if (d.strMul) p.push(`Siła liczy się <b>${d.strMul}</b>×.`);
+  if (d.vulnBonus) p.push(`<b>+${d.vulnBonus}</b>, jeśli wróg ma Podatność.`);
   if (d.vuln) p.push(`Nałóż <b>${d.vuln}</b> Podatności${all}.`);
   if (d.weak) p.push(`Nałóż <b>${d.weak}</b> Osłabienia${all}.`);
   if (d.str) p.push(`Zyskaj <b>${d.str}</b> Siły.`);
@@ -51,6 +56,7 @@ function cardText(d) {
   if (d.ritual) p.push(`Na początku tury zyskaj <b>${d.ritual}</b> Siły.`);
   if (d.plating) p.push(`Na koniec tury zyskaj <b>${d.plating}</b> pancerza.`);
   if (d.thorns) p.push(`Zyskaj <b>${d.thorns}</b> Kolców.`);
+  if (d.regen) p.push(`Na początku tury lecz <b>${d.regen}</b> HP.`);
   if (d.exhaust) p.push('<i>Wyczerp.</i>');
   return p.join(' ');
 }
@@ -64,13 +70,18 @@ function cardEl(inst) {
 }
 
 function needsTarget(d) {
-  return !d.aoe && (d.dmg || d.vuln || d.weak) ? true : false;
+  return !d.aoe && (d.dmg || d.blockDmg || d.vuln || d.weak) ? true : false;
+}
+
+/* Karty danej rzadkości dostępne dla aktualnej postaci (wspólne + jej własne). */
+function cardPool(rarity) {
+  return Object.keys(CARDS).filter(id => CARDS[id].rarity === rarity && (!CARDS[id].chr || CARDS[id].chr === G.char));
 }
 
 function randomCard(rarityRoll) {
   const r = rarityRoll ?? Math.random();
   const rarity = r < 0.6 ? 'common' : r < 0.9 ? 'uncommon' : 'rare';
-  return pick(Object.keys(CARDS).filter(id => CARDS[id].rarity === rarity));
+  return pick(cardPool(rarity));
 }
 
 function cardChoices(n, bonusRare) {
