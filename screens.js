@@ -213,7 +213,7 @@ function showShop() {
     const price = id => Math.round(CARD_PRICE[CARDS[id].rarity] * (0.9 + Math.random() * 0.25));
     const ids = [];
     ['common', 'common', 'uncommon', 'uncommon', 'rare'].forEach(r => {
-      const pool = Object.keys(CARDS).filter(id => CARDS[id].rarity === r && !ids.includes(id));
+      const pool = cardPool(r).filter(id => !ids.includes(id));
       ids.push(pick(pool));
     });
     const rel = randomRelic();
