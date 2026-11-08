@@ -24,6 +24,10 @@ function calcDmg(base, atk, def) {
 }
 
 /* ---------- Start walki ---------- */
+/**
+ * Tworzy stan walki, stos dobierania i efekty reliktów, po czym rozpoczyna turę.
+ * @param {string} kind - Rodzaj starcia: boss, elite lub zwykła walka.
+ */
 function startCombat(kind) {
   let ids;
   if (kind === 'boss') ids = ['serce'];
@@ -41,6 +45,10 @@ function startCombat(kind) {
   startTurn();
 }
 
+/**
+ * Rozpoczyna turę gracza: odnawia pancerz i energię, stosuje rytuał i regenerację,
+ * dobiera karty z premiami reliktów oraz odświeża widok walki.
+ */
 function startTurn() {
   C.turn++;
   C.block = (C.turn === 1 && hasRelic('kotwica')) ? 10 : 0;
@@ -79,6 +87,12 @@ function hitEnemy(t, base) {
   if (t.hp <= 0) { t.hp = 0; t.dead = true; }
 }
 
+/**
+ * Stosuje efekty karty do gracza i celu lub wszystkich żywych wrogów.
+ * Obrażenia poprzedzają osłabienia; funkcja nie pobiera kosztu energii.
+ * @param {Object} d - Definicja karty z uwzględnieniem ulepszenia.
+ * @param {Object} [target] - Wróg wybrany dla karty wymagającej celu.
+ */
 function resolveCard(d, target) {
   const targets = d.aoe ? aliveEnemies() : (target ? [target] : []);
   if (d.selfdmg) { G.hp -= d.selfdmg; floatAt($('#player'), `-${d.selfdmg}`, 'dmg'); }
@@ -276,6 +290,11 @@ function hpBar(hp, max) {
   const pct = Math.max(0, Math.min(100, hp / max * 100));
   return `<div class="hpbar"><div class="fill" style="width:${pct}%"></div><span>${hp}/${max}</span></div>`;
 }
+/**
+ * Buduje znaczniki HTML dla niezerowych statusów, w tym regeneracji.
+ * @param {Object} st - Wartości statusów gracza lub wroga.
+ * @returns {string} Znaczniki statusów z ikonami, wartościami i podpowiedziami.
+ */
 function chips(st) {
   const out = [];
   const add = (v, icon, name) => { if (v) out.push(`<span class="chip" title="${name}">${icon} ${v}</span>`); };

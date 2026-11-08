@@ -37,6 +37,11 @@ function plural(n, one, few, many) {
   return n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? few : many;
 }
 
+/**
+ * Buduje polski opis HTML efektów karty na podstawie jej definicji.
+ * @param {Object} d - Definicja karty z uwzględnieniem ulepszenia.
+ * @returns {string} Opisy aktywnych efektów połączone spacjami.
+ */
 function cardText(d) {
   const p = [];
   const all = d.aoe ? ' wszystkim wrogom' : '';
@@ -69,15 +74,29 @@ function cardEl(inst) {
   return e;
 }
 
+/**
+ * Sprawdza, czy obrażenia lub osłabienia karty wymagają wskazania jednego wroga.
+ * @param {Object} d - Definicja karty; efekty obszarowe nie wymagają celu.
+ * @returns {boolean} Czy gracz musi wybrać cel.
+ */
 function needsTarget(d) {
   return !d.aoe && (d.dmg || d.blockDmg || d.vuln || d.weak) ? true : false;
 }
 
-/* Karty danej rzadkości dostępne dla aktualnej postaci (wspólne + jej własne). */
+/**
+ * Zwraca karty danej rzadkości dostępne dla aktualnej postaci (wspólne + jej własne).
+ * @param {string} rarity - Wymagana rzadkość karty.
+ * @returns {string[]} Identyfikatory pasujących kart.
+ */
 function cardPool(rarity) {
   return Object.keys(CARDS).filter(id => CARDS[id].rarity === rarity && (!CARDS[id].chr || CARDS[id].chr === G.char));
 }
 
+/**
+ * Losuje kartę dostępną dla aktualnej postaci: 60% common, 30% uncommon, 10% rare.
+ * @param {number} [rarityRoll] - Wynik losowania w przedziale [0, 1); domyślnie losowy.
+ * @returns {string} Identyfikator wylosowanej karty.
+ */
 function randomCard(rarityRoll) {
   const r = rarityRoll ?? Math.random();
   const rarity = r < 0.6 ? 'common' : r < 0.9 ? 'uncommon' : 'rare';

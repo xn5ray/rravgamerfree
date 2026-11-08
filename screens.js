@@ -207,6 +207,10 @@ function showRest() {
 }
 
 /* ---------- Sklep ---------- */
+/**
+ * Przy pierwszej wizycie zapisuje ofertę sklepu w bieżącym węźle, potem ją wyświetla.
+ * Karty są unikalne i dostępne dla aktualnej postaci; kolejne wizyty zachowują ofertę.
+ */
 function showShop() {
   const n = G.node;
   if (!n.shop) {
