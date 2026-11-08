@@ -33,7 +33,7 @@ function startCombat(kind) {
     kind, enemies: ids.map(mkEnemy),
     draw: shuffle(G.deck.map(c => ({ ...c }))), hand: [], discard: [], exhaust: [],
     energy: 0, maxEnergy: 3 + (hasRelic('lampa') ? 1 : 0),
-    block: 0, st: { str: (hasRelic('zab') ? 1 : 0) + (hasRelic('rum') ? 2 : 0), weak: 0, vuln: 0, ritual: 0, plating: 0, thorns: hasRelic('beczka') ? 2 : 0 },
+    block: 0, st: { str: (hasRelic('zab') ? 1 : 0) + (hasRelic('rum') ? 2 : 0), weak: 0, vuln: 0, ritual: 0, plating: 0, regen: 0, thorns: hasRelic('beczka') ? 2 : 0 },
     turn: 0, selected: null, phase: 'player', busy: false, over: false
   };
   if (hasRelic('rum')) loseHpSafe(3);
@@ -45,6 +45,7 @@ function startTurn() {
   C.turn++;
   C.block = (C.turn === 1 && hasRelic('kotwica')) ? 10 : 0;
   C.st.str += C.st.ritual;
+  if (C.st.regen) { heal(C.st.regen); floatAt($('#player'), `+${C.st.regen}`, 'heal'); }
   C.energy = C.maxEnergy + (hasRelic('zegar') && C.turn % 3 === 0 ? 1 : 0);
   C.phase = 'player';
   drawCards(5 + (hasRelic('muszla') ? 1 : 0) + (C.turn === 1 && hasRelic('kompas') ? 2 : 0));
@@ -83,8 +84,14 @@ function resolveCard(d, target) {
   if (d.selfdmg) { G.hp -= d.selfdmg; floatAt($('#player'), `-${d.selfdmg}`, 'dmg'); }
   if (d.energy) C.energy += d.energy;
   if (d.block) { C.block += d.block; floatAt($('#player'), `+${d.block}`, 'blk'); }
-  if (d.dmg) {
-    for (let i = 0; i < (d.hits || 1); i++) targets.forEach(t => { if (!t.dead) hitEnemy(t, d.dmg); });
+  if (d.heal) { heal(d.heal); floatAt($('#player'), `+${d.heal}`, 'heal'); }
+  if (d.doubleBlock) { C.block *= 2; floatAt($('#player'), `🛡️ ${C.block}`, 'blk'); }
+  if (d.dmg || d.blockDmg) {
+    const base = d.blockDmg ? C.block : d.dmg;
+    for (let i = 0; i < (d.hits || 1); i++) targets.forEach(t => {
+      if (t.dead) return;
+      hitEnemy(t, base + (d.strMul ? C.st.str * (d.strMul - 1) : 0) + (d.vulnBonus && t.st.vuln > 0 ? d.vulnBonus : 0));
+    });
   }
   targets.forEach(t => {
     if (t.dead) return;
@@ -94,6 +101,7 @@ function resolveCard(d, target) {
   if (d.str) C.st.str += d.str;
   if (d.ritual) C.st.ritual += d.ritual;
   if (d.plating) C.st.plating += d.plating;
+  if (d.regen) C.st.regen += d.regen;
   if (d.thorns) C.st.thorns += d.thorns;
   if (d.draw) drawCards(d.draw);
 }
@@ -277,6 +285,7 @@ function chips(st) {
   add(st.ritual, '🕯️', 'Rytuał: Siła na początku tury');
   add(st.plating, '🧂', 'Zbroja: pancerz na koniec tury');
   add(st.thorns, '🪸', 'Kolce: atakujący otrzymują obrażenia');
+  add(st.regen, '🌅', 'Odnowa: leczenie na początku tury');
   return out.join('');
 }
 function intentHtml(e) {
