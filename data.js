@@ -5,7 +5,10 @@ const ROWS = 15;
 
 /* ---------- Karty ----------
    Pola: cost, type, rarity, icon, dmg, hits, aoe, block, vuln, weak, str, draw,
-   energy, selfdmg, ritual, plating, thorns, exhaust. `up` nadpisuje pola po ulepszeniu. */
+   energy, selfdmg, ritual, plating, thorns, exhaust. `up` nadpisuje pola po ulepszeniu.
+   Dodatkowe pola: heal (lecz HP), regen (lecz HP na początku tury), blockDmg (obrażenia = pancerz),
+   doubleBlock (podwój pancerz), strMul (Siła liczy się N razy), vulnBonus (+obrażenia, gdy wróg ma Podatność),
+   chr (id postaci: karta pojawia się tylko w nagrodach i sklepie tej postaci). */
 const CARDS = {
   cios:       { name: 'Cios',               type: 'attack', cost: 1, rarity: 'start',    icon: '🗡️', dmg: 6,  up: { dmg: 9 } },
   gard:       { name: 'Gard',               type: 'skill',  cost: 1, rarity: 'start',    icon: '🛡️', block: 5, up: { block: 8 } },
@@ -29,7 +32,41 @@ const CARDS = {
   rytual:     { name: 'Rytuał',             type: 'power',  cost: 1, rarity: 'rare',     icon: '🕯️', ritual: 1, up: { cost: 0 } },
   sol:        { name: 'Zbroja z soli',      type: 'power',  cost: 1, rarity: 'rare',     icon: '🧂', plating: 3, up: { plating: 5 } },
   ciernie:    { name: 'Rafa kolców',        type: 'power',  cost: 1, rarity: 'rare',     icon: '🪸', thorns: 3, up: { thorns: 5 } },
-  fala:       { name: 'Fala przypływu',     type: 'attack', cost: 2, rarity: 'rare',     icon: '🌊', dmg: 18, aoe: true, exhaust: true, up: { dmg: 24 } }
+  fala:       { name: 'Fala przypływu',     type: 'attack', cost: 2, rarity: 'rare',     icon: '🌊', dmg: 18, aoe: true, exhaust: true, up: { dmg: 24 } },
+
+  /* --- nowe karty wspólne --- */
+  szarpniecie:{ name: 'Szarpnięcie liną',   type: 'attack', cost: 0, rarity: 'common',   icon: '🧵', dmg: 4, up: { dmg: 6 } },
+  bosak:      { name: 'Cios bosakiem',      type: 'attack', cost: 1, rarity: 'common',   icon: '🪓', dmg: 10, selfdmg: 2, up: { dmg: 13 } },
+  zaslona:    { name: 'Zasłona dymna',      type: 'skill',  cost: 1, rarity: 'common',   icon: '🌁', block: 4, weak: 1, aoe: true, up: { block: 6, weak: 2 } },
+  oslona:     { name: 'Szybka osłona',      type: 'skill',  cost: 0, rarity: 'common',   icon: '🤲', block: 4, up: { block: 6 } },
+  reflektor:  { name: 'Reflektor',          type: 'skill',  cost: 1, rarity: 'common',   icon: '💡', vuln: 2, draw: 1, up: { vuln: 3 } },
+
+  grog:       { name: 'Łyk grogu',          type: 'skill',  cost: 1, rarity: 'uncommon', icon: '🍶', heal: 6, block: 4, exhaust: true, up: { heal: 9 } },
+  oskard:     { name: 'Oskard',             type: 'attack', cost: 2, rarity: 'uncommon', icon: '⛏️', dmg: 5, hits: 3, up: { dmg: 7 } },
+  sztorm:     { name: 'Sztorm',             type: 'attack', cost: 2, rarity: 'uncommon', icon: '🌩️', dmg: 10, aoe: true, weak: 1, up: { dmg: 14, weak: 2 } },
+  refowanie:  { name: 'Refowanie',          type: 'skill',  cost: 1, rarity: 'uncommon', icon: '🧷', block: 8, draw: 1, up: { block: 11 } },
+  pelnia:     { name: 'Pełnia',             type: 'skill',  cost: 0, rarity: 'uncommon', icon: '🌕', energy: 1, draw: 1, exhaust: true, up: { draw: 2 } },
+
+  snop:       { name: 'Snop światła',       type: 'attack', cost: 3, rarity: 'rare',     icon: '🔆', dmg: 28, exhaust: true, up: { dmg: 36 } },
+  odnowa:     { name: 'Odnowa',             type: 'power',  cost: 1, rarity: 'rare',     icon: '🌅', regen: 2, up: { regen: 3 } },
+  wir:        { name: 'Wir',                type: 'attack', cost: 2, rarity: 'rare',     icon: '🌀', dmg: 5, hits: 3, aoe: true, up: { dmg: 7 } },
+
+  /* --- karty postaci (pojawiają się tylko u właściwej postaci) --- */
+  promien:    { name: 'Promień latarni',    type: 'attack', cost: 1, rarity: 'common',   icon: '🌟', dmg: 7, weak: 1, chr: 'latarnik', up: { dmg: 10, weak: 2 } },
+  opieka:     { name: 'Opieka latarnika',   type: 'skill',  cost: 1, rarity: 'uncommon', icon: '⛑️', block: 7, heal: 3, chr: 'latarnik', up: { block: 10, heal: 5 } },
+  majak:      { name: 'Maják',              type: 'power',  cost: 2, rarity: 'rare',     icon: '🗼', plating: 4, regen: 2, chr: 'latarnik', up: { plating: 6, regen: 3 } },
+
+  rozped:     { name: 'Rozpęd',             type: 'skill',  cost: 0, rarity: 'common',   icon: '🏃', str: 1, exhaust: true, chr: 'harpunniczka', up: { str: 2 } },
+  furia:      { name: 'Furia harpunu',      type: 'attack', cost: 1, rarity: 'uncommon', icon: '🎯', dmg: 6, strMul: 3, chr: 'harpunniczka', up: { dmg: 8 } },
+  szal:       { name: 'Szał łowcy',         type: 'power',  cost: 2, rarity: 'rare',     icon: '😤', ritual: 2, chr: 'harpunniczka', up: { cost: 1 } },
+
+  taran:      { name: 'Taran',              type: 'attack', cost: 1, rarity: 'common',   icon: '🐏', blockDmg: true, chr: 'kotwiczny', up: { cost: 0 } },
+  mur:        { name: 'Podwojony mur',      type: 'skill',  cost: 2, rarity: 'uncommon', icon: '🧱', doubleBlock: true, exhaust: true, chr: 'kotwiczny', up: { cost: 1 } },
+  twierdza:   { name: 'Twierdza',           type: 'power',  cost: 2, rarity: 'rare',     icon: '🏯', plating: 4, thorns: 2, chr: 'kotwiczny', up: { plating: 6, thorns: 3 } },
+
+  szept:      { name: 'Szept z głębi',      type: 'skill',  cost: 0, rarity: 'common',   icon: '🤫', weak: 1, chr: 'szeptaczka', up: { weak: 2 } },
+  slabypunkt: { name: 'Cios w słaby punkt', type: 'attack', cost: 1, rarity: 'uncommon', icon: '🌑', dmg: 5, vulnBonus: 8, chr: 'szeptaczka', up: { dmg: 7, vulnBonus: 11 } },
+  klatwa:     { name: 'Przekleństwo głębin',type: 'skill',  cost: 2, rarity: 'rare',     icon: '👁️', vuln: 4, weak: 4, aoe: true, exhaust: true, chr: 'szeptaczka', up: { vuln: 5, weak: 5 } }
 };
 
 /* ---------- Postacie ----------
