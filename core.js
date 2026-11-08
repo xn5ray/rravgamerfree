@@ -14,6 +14,13 @@ const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(0,
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const screen = () => $('#screen');
 
+/* Zwraca <img> ze sprite'a z sprites.js albo emoji, gdy sprite'a brak lub się nie wczyta. */
+function art(kind, id, fallback) {
+  const src = SPRITES[kind] && SPRITES[kind][id];
+  if (!src) return fallback;
+  return `<img class="sprite" src="${src}" alt="" draggable="false" data-fb="${fallback}" onerror="this.outerHTML=this.dataset.fb">`;
+}
+
 let G = null; // stan przebiegu
 let C = null; // stan walki
 
@@ -52,7 +59,7 @@ function cardEl(inst) {
   const d = cardDef(inst);
   const e = h('div', `card ${d.type} ${d.rarity} ${inst.up ? 'up' : ''}`);
   e.innerHTML = `<div class="cost">${d.cost}</div><div class="cname">${d.name}</div>` +
-    `<div class="art">${d.icon}</div><div class="ctype">${TYPE_PL[d.type]}</div><div class="ctext">${cardText(d)}</div>`;
+    `<div class="art">${art('cards', d.id, d.icon)}</div><div class="ctype">${TYPE_PL[d.type]}</div><div class="ctext">${cardText(d)}</div>`;
   return e;
 }
 
@@ -102,7 +109,7 @@ function renderHud() {
   );
   const relics = h('div', 'relics');
   G.relics.forEach(id => {
-    const r = h('span', 'relic', RELICS[id].icon);
+    const r = h('span', 'relic', art('relics', id, RELICS[id].icon));
     r.title = `${RELICS[id].name}: ${RELICS[id].desc}`;
     relics.append(r);
   });
@@ -110,7 +117,7 @@ function renderHud() {
   const pots = h('div', 'potions');
   for (let i = 0; i < 3; i++) {
     const id = G.potions[i];
-    const s = h('button', 'potion-slot' + (id ? ' full' : ''), id ? POTIONS[id].icon : '');
+    const s = h('button', 'potion-slot' + (id ? ' full' : ''), id ? art('potions', id, POTIONS[id].icon) : '');
     if (id) {
       s.title = `${POTIONS[id].name}: ${POTIONS[id].desc}`;
       s.onclick = () => usePotion(i);

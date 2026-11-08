@@ -32,7 +32,33 @@ const CARDS = {
   fala:       { name: 'Fala przypływu',     type: 'attack', cost: 2, rarity: 'rare',     icon: '🌊', dmg: 18, aoe: true, exhaust: true, up: { dmg: 24 } }
 };
 
-const STARTER_DECK = ['cios','cios','cios','cios','cios','gard','gard','gard','gard','uderzenie'];
+/* ---------- Postacie ----------
+   Nową postać dodasz, dopisując wpis poniżej. Pola:
+   name, icon (emoji używane, gdy nie ma sprite'a), hp, gold, desc,
+   relics (id z RELICS), deck (id kart z CARDS, mogą się powtarzać).
+   Sprite postaci ustawiasz w sprites.js pod tym samym kluczem. */
+const CHARACTERS = {
+  latarnik: {
+    name: 'Latarnik', icon: '🧑‍✈️', hp: 70, gold: 99, relics: ['pierscien'],
+    desc: 'Zrównoważony. Po każdej walce leczy 6 HP.',
+    deck: ['cios', 'cios', 'cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'gard', 'uderzenie']
+  },
+  harpunniczka: {
+    name: 'Harpunniczka', icon: '🤺', hp: 62, gold: 99, relics: ['zab'],
+    desc: 'Szybkie ataki. Zaczyna każdą walkę z 1 Siły.',
+    deck: ['cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'gard', 'harpun', 'podwojne', 'seria']
+  },
+  kotwiczny: {
+    name: 'Kotwiczny', icon: '🧔', hp: 82, gold: 99, relics: ['kotwica'],
+    desc: 'Wytrzymały. Zaczyna każdą walkę z 10 pancerza.',
+    deck: ['cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'gard', 'gard', 'uderzenie', 'bastion']
+  },
+  szeptaczka: {
+    name: 'Szeptaczka', icon: '🧙‍♀️', hp: 58, gold: 99, relics: ['muszla'],
+    desc: 'Krucha, ale dobiera o 1 kartę więcej i osłabia wrogów.',
+    deck: ['cios', 'cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'sygnal', 'oddech', 'rytual']
+  }
+};
 const CARD_PRICE = { common: 50, uncommon: 75, rare: 150 };
 
 /* ---------- Wrogowie ---------- */

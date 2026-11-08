@@ -14,17 +14,43 @@ function showMenu() {
     ${wins ? `<p class="lead">Wygrane przebiegi: <b>${wins}</b></p>` : ''}`;
   const b = h('button', 'btn primary', 'Nowa gra');
   b.id = 'newGame';
-  b.onclick = startRun;
+  b.onclick = showCharSelect;
   box.append(b);
   s.append(box);
 }
 
-function startRun() {
+function showCharSelect() {
+  renderHud();
+  const s = screen();
+  s.innerHTML = '';
+  const box = h('div', 'center');
+  box.append(h('h2', '', 'Wybierz postać'));
+  const row = h('div', 'row chars');
+  Object.entries(CHARACTERS).forEach(([id, c]) => {
+    const b = h('button', 'panel charcard');
+    b.dataset.char = id;
+    const relics = c.relics.map(r => `${art('relics', r, RELICS[r].icon)} ${RELICS[r].name}`).join(', ');
+    b.innerHTML = `<div class="portrait">${art('characters', id, c.icon)}</div><div class="cname">${c.name}</div>` +
+      `<div class="hp">♥ ${c.hp} HP · 🪙 ${c.gold}</div><p class="lead">${c.desc}</p>` +
+      `<div class="relicline">${relics}</div>`;
+    b.onclick = () => startRun(id);
+    row.append(b);
+  });
+  box.append(row);
+  const back = h('button', 'btn', 'Wstecz');
+  back.onclick = showMenu;
+  box.append(back);
+  s.append(box);
+}
+
+function startRun(charId) {
+  const c = CHARACTERS[charId];
   G = {
-    hp: 70, max: 70, gold: 99,
-    deck: STARTER_DECK.map(id => ({ id, up: false })),
-    relics: ['pierscien'], potions: [], node: null, map: genMap(), removals: 0
+    char: charId, hp: c.hp, max: c.hp, gold: c.gold,
+    deck: c.deck.map(id => ({ id, up: false })),
+    relics: [], potions: [], node: null, map: genMap(), removals: 0
   };
+  c.relics.forEach(gainRelic);
   showMap();
 }
 
@@ -95,7 +121,7 @@ function showMap() {
 
   G.map.forEach(row => row.forEach(n => {
     const can = avail.includes(n);
-    const b = h('button', `node ${n.type}${can ? ' avail' : ''}${n.done ? ' done' : ''}`, NODE_ICON[n.type]);
+    const b = h('button', `node ${n.type}${can ? ' avail' : ''}${n.done ? ' done' : ''}`, art('nodes', n.type, NODE_ICON[n.type]));
     b.style.left = n.x * 100 + '%';
     b.style.top = y(n.f) + 'px';
     b.title = NODE_NAME[n.type];

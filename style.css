@@ -90,6 +90,27 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
 .clickable:hover { transform: translateY(-8px) rotate(0deg); z-index: 4; }
 .hand .card.selected { transform: translateY(-26px) scale(1.06); }
 
+/* ---- sprite'y ---- */
+.sprite { display: block; object-fit: contain; max-width: 100%; }
+.pixel .sprite { image-rendering: pixelated; }
+.portrait .sprite { height: clamp(64px, 12vw, 120px); width: auto; }
+.card .art { position: relative; align-self: stretch; }
+.card .art .sprite { position: absolute; inset: 0; width: 100%; height: 100%; }
+.relic .sprite { height: 26px; width: auto; }
+.relicline .sprite { display: inline-block; height: 1.1em; width: auto; vertical-align: -0.15em; }
+.potion-slot .sprite { height: 24px; width: auto; }
+.node .sprite { width: 72%; height: 72%; }
+
+/* ---- wybór postaci ---- */
+.chars { align-items: stretch; width: min(100%, 980px); }
+.charcard { width: 215px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; border-color: rgba(201, 162, 74, .35); }
+.charcard:hover, .charcard:focus-visible { border-color: var(--brass); background: rgba(29, 71, 80, .55); }
+.charcard .cname { font-family: var(--display); font-size: 28px; color: var(--brass); }
+.charcard .hp { color: var(--coral); font-weight: 700; }
+.charcard .lead { font-size: 15px; }
+.charcard .relicline { font-size: 14px; color: var(--glass); margin-top: auto; }
+.charcard .portrait { font-size: 64px; }
+
 /* ---- mapa ---- */
 .map-wrap { height: 100%; overflow-y: auto; }
 .map { position: relative; margin: 0 auto; width: min(100%, 560px); }

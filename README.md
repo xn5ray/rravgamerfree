@@ -18,9 +18,23 @@ Otwórz `index.html` w przeglądarce. Nie trzeba niczego instalować ani budowa�
 
 ## Zawartość
 
+- 4 postacie do wyboru (każda ma własną talię, HP i startowy relikt)
 - 20 kart (każda z ulepszeniem), 7 reliktów, 5 mikstur
 - 7 zwykłych przeciwników, 2 elity, 1 boss
 - 4 wydarzenia losowe
+
+## Dodawanie własnych sprite'ów
+
+Gra domyślnie używa emoji. Własne obrazki dodajesz w pliku `sprites.js`, bez ruszania reszty kodu:
+
+1. Wrzuć pliki (PNG, WebP, GIF lub SVG, najlepiej z przezroczystym tłem) do folderu `assets/`.
+2. W `sprites.js` wpisz ścieżkę pod kluczem z `data.js`, np. `characters: { latarnik: 'assets/latarnik.png' }` albo `enemies: { krab: 'assets/krab.png' }`.
+
+Można podmienić postacie, wrogów, ilustracje kart, relikty, mikstury i ikony pól na mapie. Czego nie wpiszesz albo co się nie wczyta, zostaje emoji. Dla pixel artu ustaw `pixelArt: true`, wtedy obrazki nie są wygładzane. Pełna lista kluczy i zalecane rozmiary są w komentarzu na górze `sprites.js`.
+
+## Dodawanie postaci
+
+W `data.js`, w obiekcie `CHARACTERS`, dopisz wpis (nazwa, ikona, HP, złoto, opis, startowe relikty i talia z id kart). Pojawi się sam na ekranie wyboru, a jego sprite ustawisz w `sprites.js` pod tym samym kluczem.
 
 ## Pliki
 
@@ -28,7 +42,8 @@ Otwórz `index.html` w przeglądarce. Nie trzeba niczego instalować ani budowa�
 | --- | --- |
 | `index.html` | strona |
 | `style.css` | wygląd (układ działa też na telefonie) |
-| `data.js` | karty, wrogowie, relikty, mikstury |
+| `data.js` | postacie, karty, wrogowie, relikty, mikstury |
+| `sprites.js` | przypisanie własnych obrazków |
 | `core.js` | wspólne narzędzia i interfejs |
 | `combat.js` | silnik walki |
 | `screens.js` | menu, mapa, nagrody, ognisko, sklep, wydarzenia |

@@ -284,7 +284,8 @@ function renderCombat() {
 
   const p = h('div', 'figure player');
   p.id = 'player';
-  p.innerHTML = `<div class="portrait">🧑‍✈️</div><div class="name">Latarnik</div>${hpBar(Math.max(0, G.hp), G.max)}` +
+  const ch = CHARACTERS[G.char];
+  p.innerHTML = `<div class="portrait">${art('characters', G.char, ch.icon)}</div><div class="name">${ch.name}</div>${hpBar(Math.max(0, G.hp), G.max)}` +
     `<div class="blk">${C.block > 0 ? '🛡️ ' + C.block : '&nbsp;'}</div><div class="chips">${chips(C.st)}</div>`;
 
   const enemies = h('div', 'enemies');
@@ -292,7 +293,7 @@ function renderCombat() {
     const t = C.selected !== null && !e.dead;
     const f = h('div', `figure enemy${e.dead ? ' dead' : ''}${t ? ' targetable' : ''}`);
     f.id = 'en-' + i;
-    f.innerHTML = `<div class="intent">${e.dead ? '&nbsp;' : intentHtml(e)}</div><div class="portrait">${e.icon}</div>` +
+    f.innerHTML = `<div class="intent">${e.dead ? '&nbsp;' : intentHtml(e)}</div><div class="portrait">${art('enemies', e.id, e.icon)}</div>` +
       `<div class="name">${e.name}</div>${hpBar(e.hp, e.max)}<div class="blk">${e.block > 0 ? '🛡️ ' + e.block : '&nbsp;'}</div>` +
       `<div class="chips">${chips(e.st)}</div>`;
     f.onclick = () => onEnemyClick(i);
