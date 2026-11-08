@@ -72,12 +72,24 @@ const ENEMIES = {
   rekin:     { name: 'Rekin',             icon: '🦈', hp: [28, 32], moves: [{ str: 2 }, { dmg: 9 }, { dmg: 9 }] },
   topielec:  { name: 'Kapitan Topielec',  icon: '☠️', hp: [68, 74], fixed: true, moves: [{ str: 3, block: 8 }, { dmg: 14 }, { dmg: 7, hits: 2 }, { dmg: 14 }] },
   straznik:  { name: 'Kamienny Strażnik', icon: '🗿', hp: [78, 84], fixed: true, moves: [{ block: 14 }, { dmg: 18 }, { dmg: 6, weak: 2, vuln: 2 }] },
+  krewetka:  { name: 'Krewetka bojowa',   icon: '🦐', hp: [9, 12],  moves: [{ dmg: 3 }, { str: 1 }, { dmg: 5 }] },
+  rozgwiazda:{ name: 'Rozgwiazda',        icon: '⭐', hp: [16, 20], moves: [{ dmg: 5 }, { heal: 4 }, { dmg: 7 }] },
+  pirania:   { name: 'Pirania',           icon: '🐟', hp: [10, 13], moves: [{ dmg: 2, hits: 3 }, { dmg: 5 }] },
+  waz:       { name: 'Wąż morski',        icon: '🐍', hp: [18, 22], moves: [{ dmg: 4, weak: 1 }, { dmg: 7 }] },
+  homar:     { name: 'Homar',             icon: '🦞', hp: [30, 35], moves: [{ dmg: 8, vuln: 1 }, { block: 8 }, { dmg: 13 }] },
+  zolw:      { name: 'Żółw pancerny',     icon: '🐢', hp: [34, 38], moves: [{ block: 12 }, { dmg: 8 }, { block: 6, dmg: 6 }, { dmg: 11 }] },
+  utopiec:   { name: 'Utopiec',           icon: '🧟', hp: [40, 46], moves: [{ dmg: 9 }, { dmg: 5, weak: 1 }, { heal: 6 }, { dmg: 12 }] },
+  wegorz:    { name: 'Węgorz elektryczny',icon: '⚡', hp: [26, 30], moves: [{ dmg: 5, weak: 1 }, { dmg: 11 }, { str: 1 }] },
+  kraken:    { name: 'Kraken',            icon: '🦑', hp: [84, 90], fixed: true, moves: [{ dmg: 5, hits: 3 }, { weak: 2, vuln: 2, block: 8 }, { dmg: 16 }] },
+  wieloryb:  { name: 'Biały Wieloryb',    icon: '🐋', hp: [92, 100], fixed: true, moves: [{ block: 12 }, { dmg: 16 }, { dmg: 8, vuln: 1 }, { str: 2, heal: 6 }, { dmg: 20 }] },
   serce:     { name: 'Serce Głębiny',     icon: '🫀', hp: [150, 150], fixed: true, moves: [{ dmg: 12 }, { str: 3, block: 12 }, { dmg: 5, hits: 4 }, { dmg: 8, weak: 2, vuln: 2 }] }
 };
 
-const ENC_EASY = [['krab'], ['meduza', 'meduza'], ['mewa', 'mewa', 'mewa'], ['meduza', 'krab']];
-const ENC_HARD = [['syrena'], ['szkielet'], ['osmiornica'], ['rekin', 'meduza'], ['syrena', 'mewa'], ['krab', 'krab', 'mewa'], ['szkielet', 'meduza']];
-const ELITES = ['topielec', 'straznik'];
+const ENC_EASY = [['krab'], ['meduza', 'meduza'], ['mewa', 'mewa', 'mewa'], ['meduza', 'krab'],
+  ['krewetka', 'krewetka'], ['rozgwiazda'], ['pirania', 'pirania'], ['waz', 'mewa'], ['krewetka', 'rozgwiazda']];
+const ENC_HARD = [['syrena'], ['szkielet'], ['osmiornica'], ['rekin', 'meduza'], ['syrena', 'mewa'], ['krab', 'krab', 'mewa'], ['szkielet', 'meduza'],
+  ['homar'], ['zolw'], ['utopiec'], ['wegorz', 'krewetka'], ['homar', 'pirania'], ['zolw', 'mewa'], ['waz', 'wegorz'], ['utopiec', 'meduza']];
+const ELITES = ['topielec', 'straznik', 'kraken', 'wieloryb'];
 
 /* ---------- Relikty ---------- */
 const RELICS = {
@@ -87,7 +99,20 @@ const RELICS = {
   muszla:    { name: 'Muszla',              icon: '🐚', desc: 'Dobierasz o 1 kartę więcej na turę.' },
   sakiewka:  { name: 'Sakiewka',            icon: '👛', desc: 'Dostajesz o 10 złota więcej za każdą walkę.' },
   perla:     { name: 'Czarna perła',        icon: '⚫', desc: 'Zyskujesz 10 maks. HP.' },
-  lampa:     { name: 'Lampa sztormowa',     icon: '🏮', desc: 'Zyskujesz 1 energii na turę.' }
+  lampa:     { name: 'Lampa sztormowa',     icon: '🏮', desc: 'Zyskujesz 1 energii na turę.' },
+  kompas:    { name: 'Kompas okrętowy',     icon: '🧭', desc: 'W pierwszej turze każdej walki dobierasz o 2 karty więcej.' },
+  siec:      { name: 'Sieć rybacka',        icon: '🕸️', desc: 'Na koniec tury zyskujesz 1 pancerza za każdą kartę w ręce.' },
+  rum:       { name: 'Butelka rumu',        icon: '🍾', desc: 'Zaczynasz każdą walkę z 2 Siły, ale tracisz 3 HP.' },
+  zegar:     { name: 'Zegar okrętowy',      icon: '🕰️', desc: 'W każdej 3. turze walki zyskujesz 1 energii więcej.' },
+  beczka:    { name: 'Beczka soli',         icon: '🛢️', desc: 'Zaczynasz każdą walkę z 2 Kolców.' },
+  lancuch:   { name: 'Łańcuch kotwiczny',   icon: '🔗', desc: 'Za każdy zagrany Atak zyskujesz 1 pancerza.' },
+  soczewka:  { name: 'Soczewka Fresnela',   icon: '🔍', desc: 'Karty nakładające Podatność nakładają o 1 więcej.' },
+  zagiel:    { name: 'Żagiel',              icon: '⛵', desc: 'Jeśli kończysz turę z co najmniej 2 energii, zyskujesz 8 pancerza.' },
+  kufer:     { name: 'Kufer skarbów',       icon: '💰', desc: 'Natychmiast zyskujesz 60 złota.' },
+  dzwon:     { name: 'Dzwon alarmowy',      icon: '🔔', desc: 'Na początku walki nakładasz 1 Osłabienia i 1 Podatności na wszystkich wrogów.' },
+  lza:       { name: 'Łza syreny',          icon: '💎', desc: 'Po każdej walce zyskujesz 2 maks. HP.' },
+  mapa:      { name: 'Pognieciona mapa',    icon: '🗺️', desc: 'Po walce masz o 25% większą szansę na miksturę.' },
+  pas:       { name: 'Pas ratunkowy',       icon: '🆘', desc: 'Raz na przebieg: gdy twoje HP spadnie do 0, wstajesz z 15 HP.' }
 };
 
 /* ---------- Mikstury ---------- */
