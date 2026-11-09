@@ -43,7 +43,7 @@ function cardText(d) {
   if (d.selfdmg) p.push(`Strać <b>${d.selfdmg}</b> HP.`);
   if (d.energy) p.push(`Zyskaj <b>${d.energy}</b> energii.`);
   if (d.block) p.push(`Zyskaj <b>${d.block}</b> pancerza.`);
-  if (d.dmg) p.push(`Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
+  if (d.dmg) p.push(d.perOrb ? `Zadaj <b>${d.dmg}</b> obrażeń za każdą kulę.` : `Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
   if (d.vuln) p.push(`Nałóż <b>${d.vuln}</b> Podatności${all}.`);
   if (d.weak) p.push(`Nałóż <b>${d.weak}</b> Osłabienia${all}.`);
   if (d.str) p.push(`Zyskaj <b>${d.str}</b> Siły.`);
@@ -51,6 +51,12 @@ function cardText(d) {
   if (d.ritual) p.push(`Na początku tury zyskaj <b>${d.ritual}</b> Siły.`);
   if (d.plating) p.push(`Na koniec tury zyskaj <b>${d.plating}</b> pancerza.`);
   if (d.thorns) p.push(`Zyskaj <b>${d.thorns}</b> Kolców.`);
+  if (d.focus) p.push(`Zyskaj <b>${d.focus}</b> Skupienia.`);
+  if (d.slots) p.push(`Zyskaj <b>${d.slots}</b> ${plural(d.slots, 'miejsce', 'miejsca', 'miejsc')} na kule.`);
+  if (d.loop) p.push(`Na koniec tury pierwsza kula działa dodatkowo <b>${d.loop}</b>×.`);
+  if (d.channel) p.push(`Stwórz ${d.channel.length > 1 ? 'kule' : 'kulę'}: ${d.channel.map(o => `${ORBS[o].icon} ${ORBS[o].name}`).join(', ')}.`);
+  if (d.evokeAll) p.push('Uwolnij wszystkie kule.');
+  else if (d.evoke) p.push(`Uwolnij pierwszą kulę${d.evoke > 1 ? ` <b>${d.evoke}</b>×` : ''}.`);
   if (d.exhaust) p.push('<i>Wyczerp.</i>');
   return p.join(' ');
 }
@@ -67,10 +73,22 @@ function needsTarget(d) {
   return !d.aoe && (d.dmg || d.vuln || d.weak) ? true : false;
 }
 
+/* Karty dostępne dla aktualnej postaci w danej rzadkości. Karty klasowe (pole `char`)
+   widzi tylko ich postać i trafiają się 3 razy częściej niż neutralne. */
+function cardPool(rarity) {
+  const out = [];
+  Object.keys(CARDS).forEach(id => {
+    const c = CARDS[id];
+    if (c.rarity !== rarity || (c.char && c.char !== G.char)) return;
+    for (let k = 0; k < (c.char ? 3 : 1); k++) out.push(id);
+  });
+  return out;
+}
+
 function randomCard(rarityRoll) {
   const r = rarityRoll ?? Math.random();
   const rarity = r < 0.6 ? 'common' : r < 0.9 ? 'uncommon' : 'rare';
-  return pick(Object.keys(CARDS).filter(id => CARDS[id].rarity === rarity));
+  return pick(cardPool(rarity));
 }
 
 function cardChoices(n, bonusRare) {

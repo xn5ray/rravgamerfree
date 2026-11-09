@@ -29,7 +29,32 @@ const CARDS = {
   rytual:     { name: 'Rytuał',             type: 'power',  cost: 1, rarity: 'rare',     icon: '🕯️', ritual: 1, up: { cost: 0 } },
   sol:        { name: 'Zbroja z soli',      type: 'power',  cost: 1, rarity: 'rare',     icon: '🧂', plating: 3, up: { plating: 5 } },
   ciernie:    { name: 'Rafa kolców',        type: 'power',  cost: 1, rarity: 'rare',     icon: '🪸', thorns: 3, up: { thorns: 5 } },
-  fala:       { name: 'Fala przypływu',     type: 'attack', cost: 2, rarity: 'rare',     icon: '🌊', dmg: 18, aoe: true, exhaust: true, up: { dmg: 24 } }
+  fala:       { name: 'Fala przypływu',     type: 'attack', cost: 2, rarity: 'rare',     icon: '🌊', dmg: 18, aoe: true, exhaust: true, up: { dmg: 24 } },
+
+  /* ---- Karty Automatu (pole `char` ogranicza je do tej postaci) ----
+     channel: lista kul do stworzenia, evoke: ile razy uwolnić pierwszą kulę,
+     evokeAll: uwolnij wszystkie kule, focus / slots / loop: statystyki orbów,
+     perOrb: obrażenia razy liczba kul. */
+  zap:        { char: 'automat', name: 'Zwarcie',               type: 'skill',  cost: 1, rarity: 'start',    icon: '⚡', channel: ['blysk'], up: { cost: 0 } },
+  dwuklik:    { char: 'automat', name: 'Podwójny impuls',       type: 'skill',  cost: 1, rarity: 'start',    icon: '🔁', evoke: 2, up: { cost: 0 } },
+
+  wyladowanie:{ char: 'automat', name: 'Wyładowanie',           type: 'attack', cost: 1, rarity: 'common',   icon: '🌩️', dmg: 6, channel: ['blysk'], up: { dmg: 9 } },
+  mrozny:     { char: 'automat', name: 'Mroźny podmuch',        type: 'attack', cost: 1, rarity: 'common',   icon: '❄️', dmg: 6, channel: ['szron'], up: { dmg: 9 } },
+  chlodzenie: { char: 'automat', name: 'Chłodzenie',            type: 'skill',  cost: 1, rarity: 'common',   icon: '🧊', draw: 1, channel: ['szron'], up: { draw: 2 } },
+  ciemnosc:   { char: 'automat', name: 'Ciemność',              type: 'skill',  cost: 1, rarity: 'common',   icon: '🌌', channel: ['mrok'], up: { cost: 0 } },
+  rozladowanie:{char: 'automat', name: 'Rozładowanie',          type: 'skill',  cost: 1, rarity: 'common',   icon: '💨', block: 4, evoke: 1, up: { block: 7 } },
+
+  strojenie:  { char: 'automat', name: 'Strojenie',             type: 'power',  cost: 1, rarity: 'uncommon', icon: '🎛️', focus: 1, up: { focus: 2 } },
+  rozszerzenie:{char: 'automat', name: 'Rozszerzenie obwodów',  type: 'power',  cost: 1, rarity: 'uncommon', icon: '🔌', slots: 2, up: { slots: 3 } },
+  fuzja:      { char: 'automat', name: 'Fuzja',                 type: 'skill',  cost: 2, rarity: 'uncommon', icon: '🔮', channel: ['plazma'], up: { cost: 1 } },
+  salwa_kul:  { char: 'automat', name: 'Salwa kul',             type: 'attack', cost: 2, rarity: 'uncommon', icon: '🎆', dmg: 4, perOrb: true, up: { dmg: 6 } },
+  mrozna_fala:{ char: 'automat', name: 'Mroźna fala',           type: 'skill',  cost: 1, rarity: 'uncommon', icon: '🥶', channel: ['szron', 'szron'], exhaust: true, up: { cost: 0 } },
+  lancuch:    { char: 'automat', name: 'Zwarcie łańcuchowe',    type: 'attack', cost: 1, rarity: 'uncommon', icon: '⛓️', dmg: 5, aoe: true, channel: ['blysk'], up: { dmg: 8 } },
+
+  petla:      { char: 'automat', name: 'Pętla',                 type: 'power',  cost: 1, rarity: 'rare',     icon: '♾️', loop: 1, up: { loop: 2 } },
+  wszystkie:  { char: 'automat', name: 'Wielokrotne uwolnienie',type: 'skill',  cost: 1, rarity: 'rare',     icon: '💥', evokeAll: true, up: { cost: 0 } },
+  tecza:      { char: 'automat', name: 'Tęcza',                 type: 'skill',  cost: 2, rarity: 'rare',     icon: '🌈', channel: ['blysk', 'szron', 'mrok'], exhaust: true, up: { cost: 1 } },
+  przeciazenie:{char: 'automat', name: 'Przeciążenie rdzenia',  type: 'attack', cost: 2, rarity: 'rare',     icon: '☢️', dmg: 12, evoke: 1, up: { dmg: 17 } }
 };
 
 /* ---------- Postacie ----------
@@ -57,7 +82,21 @@ const CHARACTERS = {
     name: 'Szeptaczka', icon: '🧙‍♀️', hp: 58, gold: 99, relics: ['muszla'],
     desc: 'Krucha, ale dobiera o 1 kartę więcej i osłabia wrogów.',
     deck: ['cios', 'cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'sygnal', 'oddech', 'rytual']
+  },
+  automat: {
+    name: 'Automat', icon: '🤖', hp: 64, gold: 99, relics: ['rdzen'], orbs: true,
+    desc: 'Tworzy kule, które działają same co turę. Skupienie wzmacnia je wszystkie.',
+    deck: ['cios', 'cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'gard', 'zap', 'dwuklik']
   }
+};
+
+/* ---------- Kule (mechanika Automatu) ----------
+   Opisy pasywnych i uwolnionych efektów liczy funkcja orbDesc() w combat.js. */
+const ORBS = {
+  blysk:  { name: 'Błysk',  icon: '⚡' },
+  szron:  { name: 'Szron',  icon: '🧊' },
+  mrok:   { name: 'Mrok',   icon: '🌌' },
+  plazma: { name: 'Plazma', icon: '🔮' }
 };
 const CARD_PRICE = { common: 50, uncommon: 75, rare: 150 };
 
@@ -112,7 +151,8 @@ const RELICS = {
   dzwon:     { name: 'Dzwon alarmowy',      icon: '🔔', desc: 'Na początku walki nakładasz 1 Osłabienia i 1 Podatności na wszystkich wrogów.' },
   lza:       { name: 'Łza syreny',          icon: '💎', desc: 'Po każdej walce zyskujesz 2 maks. HP.' },
   mapa:      { name: 'Pognieciona mapa',    icon: '🗺️', desc: 'Po walce masz o 25% większą szansę na miksturę.' },
-  pas:       { name: 'Pas ratunkowy',       icon: '🆘', desc: 'Raz na przebieg: gdy twoje HP spadnie do 0, wstajesz z 15 HP.' }
+  pas:       { name: 'Pas ratunkowy',       icon: '🆘', desc: 'Raz na przebieg: gdy twoje HP spadnie do 0, wstajesz z 15 HP.' },
+  rdzen:     { name: 'Pęknięty rdzeń',      icon: '🔋', desc: 'Zaczynasz każdą walkę z kulą Błysku.', rarity: 'start' }
 };
 
 /* ---------- Mikstury ---------- */

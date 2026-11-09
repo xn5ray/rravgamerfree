@@ -21,7 +21,8 @@
      relics, potions      ikona, ok. 64×64
      nodes                ikona pola na mapie, ok. 64×64
 
-   Klucze `characters`: latarnik, harpunniczka, kotwiczny, szeptaczka
+   Klucze `characters`: latarnik, harpunniczka, kotwiczny, szeptaczka, automat
+   Klucze `orbs`:       blysk, szron, mrok, plazma (kule Automatu, ikona ok. 64×64)
    Klucze `enemies`:    krab, meduza, mewa, syrena, szkielet, osmiornica, rekin,
                         topielec, straznik, serce
    Klucze `cards`:      id kart z CARDS w data.js (np. cios, gard, uderzenie, ...)
@@ -54,5 +55,8 @@ const SPRITES = {
   },
   nodes: {
     // fight: 'assets/pole-walka.png',
+  },
+  orbs: {
+    // blysk: 'assets/kula-blysk.png',
   }
 };

@@ -78,7 +78,7 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
   background: var(--ink); border: 2px solid var(--brass); display: grid; place-items: center;
   font-weight: 700; font-size: 1.25em; color: #fff;
 }
-.card .cname { font-family: var(--display); font-size: 1.35em; margin-top: 2px; color: #fff; }
+.card .cname { font-family: var(--display); font-size: 1.1em; margin-top: 2px; padding: 0 1.15em; color: #fff; line-height: 1.1; }
 .card .art { font-size: calc(var(--cw) / 3.1); flex: 1; display: grid; place-items: center; min-height: 0; }
 .card .ctype { font-size: .8em; color: var(--mute); }
 .card .ctext { min-height: 4.4em; padding: 2px 2px 4px; }
@@ -100,6 +100,16 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
 .relicline .sprite { display: inline-block; height: 1.1em; width: auto; vertical-align: -0.15em; }
 .potion-slot .sprite { height: 24px; width: auto; }
 .node .sprite { width: 72%; height: 72%; }
+
+/* ---- kule Automatu ---- */
+.orbs { display: flex; gap: 6px; justify-content: center; min-height: 34px; margin-top: 4px; }
+.orb {
+  position: relative; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--glass);
+  background: rgba(127, 196, 176, .1); display: grid; place-items: center; font-size: 18px; cursor: help;
+}
+.orb.empty { border-style: dashed; opacity: .4; cursor: default; }
+.orb small { position: absolute; right: -5px; bottom: -6px; padding: 0 4px; border-radius: 8px; background: var(--ink); font-size: 11px; font-weight: 700; }
+.orb .sprite { height: 22px; width: auto; }
 
 /* ---- wybór postaci ---- */
 .chars { align-items: stretch; width: min(100%, 980px); }
