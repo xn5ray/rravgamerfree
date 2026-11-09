@@ -33,13 +33,15 @@ function startCombat(kind) {
     kind, enemies: ids.map(mkEnemy),
     draw: shuffle(G.deck.map(c => ({ ...c }))), hand: [], discard: [], exhaust: [],
     energy: 0, maxEnergy: 3 + (hasRelic('lampa') ? 1 : 0),
-    block: 0, st: { str: (hasRelic('zab') ? 1 : 0) + (hasRelic('rum') ? 2 : 0), weak: 0, vuln: 0, ritual: 0, plating: 0, thorns: hasRelic('beczka') ? 2 : 0, focus: 0, loop: 0 },
+    block: 0, st: { str: (hasRelic('zab') ? 1 : 0) + (hasRelic('rum') ? 2 : 0), weak: 0, vuln: 0, ritual: 0, plating: 0, thorns: hasRelic('beczka') ? 2 : 0, focus: 0, loop: 0, necro: 0 },
     orbs: [], slots: 3, nextEnergy: 0,
+    minions: [], minionSlots: 4, spawn: [],
     turn: 0, selected: null, phase: 'player', busy: false, over: false
   };
   if (hasRelic('rum')) loseHpSafe(3);
   if (hasRelic('dzwon')) C.enemies.forEach(e => { e.st.weak += 1; e.st.vuln += 1; });
   if (hasRelic('rdzen')) channelOrb('blysk');
+  if (hasRelic('amulet')) summonMinion('szkielet');
   startTurn();
 }
 
@@ -49,6 +51,7 @@ function startTurn() {
   C.st.str += C.st.ritual;
   C.energy = C.maxEnergy + C.nextEnergy + (hasRelic('zegar') && C.turn % 3 === 0 ? 1 : 0);
   C.nextEnergy = 0;
+  C.spawn.forEach(id => summonMinion(id));
   C.phase = 'player';
   drawCards(5 + (hasRelic('muszla') ? 1 : 0) + (C.turn === 1 && hasRelic('kompas') ? 2 : 0));
   renderCombat();
@@ -88,8 +91,9 @@ function resolveCard(d, target) {
   if (d.energy) C.energy += d.energy;
   if (d.block) { C.block += d.block; floatAt($('#player'), `+${d.block}`, 'blk'); }
   if (d.dmg) {
-    const n = d.perOrb ? C.orbs.length : (d.hits || 1);
-    for (let i = 0; i < n; i++) targets.forEach(t => { if (!t.dead) hitEnemy(t, d.dmg); });
+    const n = d.perOrb ? C.orbs.length : d.perMinion ? C.minions.length : (d.hits || 1);
+    const base = d.dmg + (d.bonusIfMinion && C.minions.length ? d.bonusIfMinion : 0);
+    for (let i = 0; i < n; i++) targets.forEach(t => { if (!t.dead) hitEnemy(t, base); });
   }
   targets.forEach(t => {
     if (t.dead) return;
@@ -106,7 +110,73 @@ function resolveCard(d, target) {
   (d.channel || []).forEach(id => channelOrb(id));
   if (d.evokeAll) { while (C.orbs.length) evokeOrb(0, 1); }
   else if (d.evoke) evokeOrb(0, d.evoke);
+  if (d.sacrifice) C.minions.splice(0, d.sacrifice);
+  if (d.sacrificeAll) {
+    const n = C.minions.length;
+    C.minions = [];
+    aliveEnemies().forEach(t => dealDamage(t, orbDmg(d.blast * n, t)));
+  }
+  if (d.healAll) C.minions.forEach(m => { m.hp = m.max; });
+  else if (d.healMinions) C.minions.forEach(m => { m.hp = Math.min(m.max, m.hp + d.healMinions); });
+  (d.summon || []).forEach(id => summonMinion(id));
+  if (d.commandAll) C.minions.slice().forEach(m => minionAct(m));
+  if (d.necro) C.st.necro += d.necro;
+  if (d.spawnEach) C.spawn.push(d.spawnEach);
   if (d.draw) drawCards(d.draw);
+}
+
+/* ---------- Sługi ---------- */
+function summonMinion(id) {
+  if (C.minions.length >= C.minionSlots) return false;
+  const def = MINIONS[id];
+  C.minions.push({ id, hp: def.hp, max: def.hp });
+  return true;
+}
+
+function minionAct(m) {
+  const def = MINIONS[m.id], bonus = C.st.necro || 0;
+  if (def.atk) { const t = randomAlive(); if (t) dealDamage(t, orbDmg(def.atk + bonus, t)); }
+  if (def.block) { C.block += def.block + bonus; floatAt($('#player'), `+${def.block + bonus}`, 'blk'); }
+}
+
+/* Wrogowie biją najpierw pierwszego sługę z lewej, nadmiar obrażeń przechodzi na gracza. */
+function hitPlayer(n) {
+  const m = C.minions[0];
+  if (m && n > 0) {
+    const ab = Math.min(m.hp, n);
+    m.hp -= ab; n -= ab;
+    floatAt(document.getElementById('mn-0'), `-${ab}`, 'dmg');
+    if (m.hp <= 0) C.minions.shift();
+  }
+  if (n > 0 || !m) damagePlayer(n);
+}
+
+/* Zwraca powód, dla którego karty nie da się teraz zagrać (poza energią), albo null. */
+function cantPlay(d) {
+  if (d.summon && C.minions.length >= C.minionSlots) return 'Brak miejsca na sługi';
+  if ((d.sacrifice || d.sacrificeAll) && !C.minions.length) return 'Potrzebujesz sługi';
+  return null;
+}
+
+function minionDesc(m) {
+  const def = MINIONS[m.id], b = C.st.necro || 0, p = [];
+  if (def.atk) p.push(`Na koniec tury zadaje ${def.atk + b} obrażeń losowemu wrogowi.`);
+  if (def.block) p.push(`Na koniec tury daje ${def.block + b} pancerza.`);
+  p.push('Wrogowie atakują sługi przed Tobą, od lewej.');
+  return p.join(' ');
+}
+
+function minionsHtml() {
+  if (!CHARACTERS[G.char].minions) return '';
+  let out = '';
+  for (let i = 0; i < C.minionSlots; i++) {
+    const m = C.minions[i];
+    if (!m) { out += '<span class="minion empty" title="Wolne miejsce na sługę"></span>'; continue; }
+    const def = MINIONS[m.id];
+    out += `<span class="minion${i === 0 ? ' front' : ''}" id="mn-${i}" title="${def.name}: ${minionDesc(m)}">` +
+      `${art('minions', m.id, def.icon)}<small>${m.hp}/${m.max}</small></span>`;
+  }
+  return `<div class="minions">${out}</div>`;
 }
 
 /* ---------- Kule ---------- */
@@ -181,6 +251,8 @@ function playCard(i, target) {
   if (!inst) return;
   const d = cardDef(inst);
   if (d.cost > C.energy) { toast('Za mało energii'); return; }
+  const why = cantPlay(d);
+  if (why) { toast(why); return; }
   C.energy -= d.cost;
   C.hand.splice(i, 1);
   C.selected = null;
@@ -196,6 +268,8 @@ function onCardClick(i) {
   const d = cardDef(C.hand[i]);
   if (C.selected === i) { C.selected = null; renderCombat(); return; }
   if (d.cost > C.energy) { toast('Za mało energii'); return; }
+  const why = cantPlay(d);
+  if (why) { toast(why); return; }
   if (needsTarget(d)) {
     const alive = aliveEnemies();
     if (alive.length === 1) playCard(i, alive[0]);
@@ -247,7 +321,7 @@ function enemyAct(e) {
   }
   if (m.dmg) {
     for (let i = 0; i < (m.hits || 1); i++) {
-      damagePlayer(calcDmg(m.dmg, e.st, C.st));
+      hitPlayer(calcDmg(m.dmg, e.st, C.st));
       if (C.st.thorns) {
         e.hp -= C.st.thorns;
         floatAt(enemyEl(e), `-${C.st.thorns}`, 'dmg');
@@ -272,6 +346,11 @@ async function endTurn() {
     if (i === 0) for (let k = 0; k < (C.st.loop || 0); k++) orbPassive(o);
   });
   if (C.orbs.length) { renderCombat(); if (checkEnd()) return; }
+  if (C.minions.length) {
+    C.minions.slice().forEach(m => minionAct(m));
+    renderCombat();
+    if (checkEnd()) return;
+  }
   if (C.st.weak > 0) C.st.weak--;
   if (C.st.vuln > 0) C.st.vuln--;
   C.discard.push(...C.hand);
@@ -361,6 +440,7 @@ function chips(st) {
   add(st.thorns, '🪸', 'Kolce: atakujący otrzymują obrażenia');
   add(st.focus, '🎯', 'Skupienie: wzmacnia kule Błysk, Szron i Mrok');
   add(st.loop, '♾️', 'Pętla: pierwsza kula działa dodatkowo na koniec tury');
+  add(st.necro, '🩻', 'Moc nieumarłych: słudzy zadają i dają więcej');
   return out.join('');
 }
 function intentHtml(e) {
@@ -388,7 +468,7 @@ function renderCombat() {
   p.id = 'player';
   const ch = CHARACTERS[G.char];
   p.innerHTML = `<div class="portrait">${art('characters', G.char, ch.icon)}</div><div class="name">${ch.name}</div>${hpBar(Math.max(0, G.hp), G.max)}` +
-    `<div class="blk">${C.block > 0 ? '🛡️ ' + C.block : '&nbsp;'}</div><div class="chips">${chips(C.st)}</div>${orbsHtml()}`;
+    `<div class="blk">${C.block > 0 ? '🛡️ ' + C.block : '&nbsp;'}</div><div class="chips">${chips(C.st)}</div>${orbsHtml()}${minionsHtml()}`;
 
   const enemies = h('div', 'enemies');
   C.enemies.forEach((e, i) => {
@@ -423,7 +503,7 @@ function renderCombat() {
     const d = cardDef(inst);
     const e = cardEl(inst);
     e.classList.add('clickable');
-    if (d.cost > C.energy) e.classList.add('unplayable');
+    if (d.cost > C.energy || cantPlay(d)) e.classList.add('unplayable');
     if (C.selected === i) e.classList.add('selected');
     e.style.setProperty('--r', `${(i - (C.hand.length - 1) / 2) * 1.6}deg`);
     e.onclick = () => onCardClick(i);

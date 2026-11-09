@@ -30,13 +30,29 @@ Automat gra inaczej niż reszta postaci. Jego karty tworzą **kule**, które zaj
 - Gdy miejsca są pełne, nowa kula uwalnia najstarszą.
 - **Skupienie** wzmacnia Błysk, Szron i Mrok. **Pętla** sprawia, że pierwsza kula działa dodatkowo na koniec tury.
 - Kule nie korzystają z Siły, a wrogowie z Podatnością dostają od nich więcej obrażeń.
-- Karty klasowe pojawiają się w nagrodach i sklepie tylko u Automatu.
+- Karty klasowe pojawiają się w nagrodach i sklepie tylko u swojej postaci.
+
+### Nekromantka i słudzy
+
+Nekromantka walczy rękami **sług**. Karty przywołują ich na 4 miejsca obok postaci:
+
+| Sługa | HP | Na koniec tury |
+| --- | --- | --- |
+| 💀 Szkielet | 7 | zadaje 3 obrażeń losowemu wrogowi |
+| 👻 Widmo | 4 | daje Ci 3 pancerza |
+| 🧟 Utopiony | 9 | zadaje 4 obrażeń losowemu wrogowi |
+| 🦴 Kościany golem | 14 | zadaje 2 obrażeń losowemu wrogowi |
+
+- **Wrogowie najpierw biją sługi:** każdy cios trafia pierwszego sługę z lewej (jest obrysowany na czerwono), a nadmiar obrażeń przechodzi na Ciebie. Pancerz nie chroni sług.
+- Karty mogą przywoływać sługi, leczyć je, poświęcać dla energii i kart albo wysadzać (Eksplozja kości). **Moc nieumarłych** wzmacnia ich obrażenia i pancerz, a **Pan grobu** przywołuje Szkieleta co turę.
+- Kartę przywołania lub poświęcenia da się zagrać tylko wtedy, gdy jest na to miejsce lub sługa (inaczej jest wyszarzona).
 
 ## Zawartość
 
-- 5 postaci do wyboru (każda ma własną talię, HP i startowy relikt)
-- 37 kart (każda z ulepszeniem): 20 neutralnych i 17 klasowych Automatu, 8 reliktów, 5 mikstur
-- 7 zwykłych przeciwników, 2 elity, 1 boss
+- 6 postaci do wyboru (każda ma własną talię, HP i startowy relikt)
+- 54 karty (każda z ulepszeniem): 20 neutralnych oraz po 17 klasowych Automatu i Nekromantki
+- 22 relikty, 5 mikstur
+- 15 zwykłych przeciwników, 4 elity, 1 boss
 - 4 wydarzenia losowe
 
 ## Dodawanie własnych sprite'ów
@@ -46,7 +62,7 @@ Gra domyślnie używa emoji. Własne obrazki dodajesz w pliku `sprites.js`, bez 
 1. Wrzuć pliki (PNG, WebP, GIF lub SVG, najlepiej z przezroczystym tłem) do folderu `assets/`.
 2. W `sprites.js` wpisz ścieżkę pod kluczem z `data.js`, np. `characters: { latarnik: 'assets/latarnik.png' }` albo `enemies: { krab: 'assets/krab.png' }`.
 
-Można podmienić postacie, wrogów, ilustracje kart, relikty, mikstury, kule Automatu i ikony pól na mapie. Czego nie wpiszesz albo co się nie wczyta, zostaje emoji. Dla pixel artu ustaw `pixelArt: true`, wtedy obrazki nie są wygładzane. Pełna lista kluczy i zalecane rozmiary są w komentarzu na górze `sprites.js`.
+Można podmienić postacie, wrogów, ilustracje kart, relikty, mikstury, kule Automatu, sługi Nekromantki i ikony pól na mapie. Czego nie wpiszesz albo co się nie wczyta, zostaje emoji. Dla pixel artu ustaw `pixelArt: true`, wtedy obrazki nie są wygładzane. Pełna lista kluczy i zalecane rozmiary są w komentarzu na górze `sprites.js`.
 
 ## Dodawanie postaci
 

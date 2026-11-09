@@ -43,7 +43,7 @@ function cardText(d) {
   if (d.selfdmg) p.push(`Strać <b>${d.selfdmg}</b> HP.`);
   if (d.energy) p.push(`Zyskaj <b>${d.energy}</b> energii.`);
   if (d.block) p.push(`Zyskaj <b>${d.block}</b> pancerza.`);
-  if (d.dmg) p.push(d.perOrb ? `Zadaj <b>${d.dmg}</b> obrażeń za każdą kulę.` : `Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
+  if (d.dmg) p.push(d.perOrb ? `Zadaj <b>${d.dmg}</b> obrażeń za każdą kulę.` : d.perMinion ? `Zadaj <b>${d.dmg}</b> obrażeń za każdego sługę.` :`Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
   if (d.vuln) p.push(`Nałóż <b>${d.vuln}</b> Podatności${all}.`);
   if (d.weak) p.push(`Nałóż <b>${d.weak}</b> Osłabienia${all}.`);
   if (d.str) p.push(`Zyskaj <b>${d.str}</b> Siły.`);
@@ -57,15 +57,26 @@ function cardText(d) {
   if (d.channel) p.push(`Stwórz ${d.channel.length > 1 ? 'kule' : 'kulę'}: ${d.channel.map(o => `${ORBS[o].icon} ${ORBS[o].name}`).join(', ')}.`);
   if (d.evokeAll) p.push('Uwolnij wszystkie kule.');
   else if (d.evoke) p.push(`Uwolnij pierwszą kulę${d.evoke > 1 ? ` <b>${d.evoke}</b>×` : ''}.`);
+  if (d.bonusIfMinion) p.push(`Jeśli masz sługę, zadaj dodatkowo <b>${d.bonusIfMinion}</b>.`);
+  if (d.sacrifice) p.push('Poświęć pierwszego sługę.');
+  if (d.sacrificeAll) p.push(`Poświęć wszystkich sług. Zadaj <b>${d.blast}</b> obrażeń wszystkim wrogom za każdego.`);
+  if (d.healAll) p.push('Lecz wszystkich sług do pełna.');
+  else if (d.healMinions) p.push(`Lecz wszystkich sług o <b>${d.healMinions}</b>.`);
+  if (d.summon) p.push(`Przywołaj ${d.summon.length > 1 ? 'sługi' : 'sługę'}: ${d.summon.map(m => `${MINIONS[m].icon} ${MINIONS[m].name}`).join(', ')}.`);
+  if (d.commandAll) p.push('Każdy sługa działa natychmiast.');
+  if (d.necro) p.push(`Słudzy zadają i dają o <b>${d.necro}</b> więcej.`);
+  if (d.spawnEach) p.push(`Na początku każdej tury przywołaj: ${MINIONS[d.spawnEach].icon} ${MINIONS[d.spawnEach].name}.`);
   if (d.exhaust) p.push('<i>Wyczerp.</i>');
   return p.join(' ');
 }
 
 function cardEl(inst) {
   const d = cardDef(inst);
+  const text = cardText(d);
+  const long = text.replace(/<[^>]+>/g, '').length > 55; // długie opisy dostają mniejszą czcionkę
   const e = h('div', `card ${d.type} ${d.rarity} ${inst.up ? 'up' : ''}`);
   e.innerHTML = `<div class="cost">${d.cost}</div><div class="cname">${d.name}</div>` +
-    `<div class="art">${art('cards', d.id, d.icon)}</div><div class="ctype">${TYPE_PL[d.type]}</div><div class="ctext">${cardText(d)}</div>`;
+    `<div class="art">${art('cards', d.id, d.icon)}</div><div class="ctype">${TYPE_PL[d.type]}</div><div class="ctext${long ? ' long' : ''}">${text}</div>`;
   return e;
 }
 

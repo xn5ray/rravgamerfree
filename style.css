@@ -82,6 +82,7 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
 .card .art { font-size: calc(var(--cw) / 3.1); flex: 1; display: grid; place-items: center; min-height: 0; }
 .card .ctype { font-size: .8em; color: var(--mute); }
 .card .ctext { min-height: 4.4em; padding: 2px 2px 4px; }
+.card .ctext.long { font-size: .86em; line-height: 1.15; min-height: 0; }
 .card.up .cname { color: var(--glass); }
 .card.unplayable { filter: grayscale(.7) brightness(.7); }
 .card.selected { transform: translateY(-26px) scale(1.06); box-shadow: 0 0 0 3px var(--glass), 0 10px 20px rgba(0, 0, 0, .6); z-index: 5; }
@@ -110,6 +111,20 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
 .orb.empty { border-style: dashed; opacity: .4; cursor: default; }
 .orb small { position: absolute; right: -5px; bottom: -6px; padding: 0 4px; border-radius: 8px; background: var(--ink); font-size: 11px; font-weight: 700; }
 .orb .sprite { height: 22px; width: auto; }
+
+/* ---- sługi Nekromantki ---- */
+.minions { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+.minion {
+  position: relative; width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--brass);
+  background: rgba(201, 162, 74, .1); display: grid; place-items: center; font-size: 24px; cursor: help;
+}
+.minion.front { outline: 2px solid var(--coral); outline-offset: 1px; }
+.minion.empty { border-style: dashed; opacity: .35; cursor: default; }
+.minion small {
+  position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); padding: 0 5px; border-radius: 8px;
+  background: var(--ink); font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.minion .sprite { height: 30px; width: auto; }
 
 /* ---- wybór postaci ---- */
 .chars { align-items: stretch; width: min(100%, 980px); }
