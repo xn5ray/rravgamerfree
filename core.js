@@ -14,6 +14,48 @@ const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(0,
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const screen = () => $('#screen');
 
+/* ---------- Wielu graczy ----------
+   G.players[i] trzyma trwały stan gracza, a C.ps[i] stan jego walki. Pola takie jak G.hp, G.deck,
+   C.hand czy C.block są "delegowane" do aktywnego gracza (G.ap / C.ap), więc cały kod napisany
+   dla jednego gracza działa dla aktualnie wybranego. Do innego gracza przechodzi się przez
+   setActive() albo withPlayer(). Tryb solo to po prostu lista z jednym graczem. */
+const PLAYER_KEYS = ['char', 'hp', 'max', 'deck', 'relics', 'potions', 'pasUsed'];
+const COMBAT_KEYS = ['draw', 'hand', 'discard', 'exhaust', 'energy', 'maxEnergy', 'block', 'st', 'orbs', 'slots', 'nextEnergy', 'minions', 'minionSlots', 'spawn', 'ready'];
+
+function delegate(obj, keys, listKey) {
+  keys.forEach(k => Object.defineProperty(obj, k, {
+    get() { return this[listKey][this.ap][k]; },
+    set(v) { this[listKey][this.ap][k] = v; },
+    enumerable: true, configurable: true
+  }));
+}
+function setActive(i) { G.ap = i; if (C) C.ap = i; }
+function withPlayer(i, fn) {
+  const prev = G.ap;
+  setActive(i);
+  try { return fn(); } finally { setActive(prev); }
+}
+const isCoop = () => !!G && G.players.length > 1;
+const isAlive = i => G.players[i].hp > 0;
+const alivePlayers = () => G.players.map((p, i) => i).filter(isAlive);
+const pickTarget = () => { const a = alivePlayers(); return a.length ? pick(a) : 0; };
+const playerEl = () => document.getElementById('player-' + (C ? C.ap : 0));
+const playerName = i => CHARACTERS[G.players[i].char].name;
+
+/* Przełącza, którego gracza rękę i ekwipunek widać. W walce lub tam, gdzie ekran ma G.refresh. */
+function switchPlayer(i) {
+  if (!G || i === G.ap || i < 0 || i >= G.players.length) return;
+  if (C && !C.over) {
+    if (!isAlive(i)) { toast('Ten gracz poległ'); return; }
+    setActive(i);
+    C.selected = null;
+    renderCombat();
+  } else if (G.refresh) {
+    setActive(i);
+    G.refresh();
+  }
+}
+
 /* Zwraca <img> ze sprite'a z sprites.js albo emoji, gdy sprite'a brak lub się nie wczyta. */
 function art(kind, id, fallback) {
   const src = SPRITES[kind] && SPRITES[kind][id];
@@ -51,7 +93,7 @@ function cardText(d) {
   if (d.heal) p.push(`Lecz <b>${d.heal}</b> HP.`);
   if (d.doubleBlock) p.push('Podwój pancerz.');
   if (d.blockDmg) p.push('Zadaj obrażenia równe pancerzowi.');
-  if (d.dmg) p.push(`Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
+  if (d.dmg) p.push(d.perOrb ? `Zadaj <b>${d.dmg}</b> obrażeń za każdą kulę.` : d.perMinion ? `Zadaj <b>${d.dmg}</b> obrażeń za każdego sługę.` :`Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
   if (d.strMul) p.push(`Siła liczy się <b>${d.strMul}</b>×.`);
   if (d.vulnBonus) p.push(`<b>+${d.vulnBonus}</b>, jeśli wróg ma Podatność.`);
   if (d.vuln) p.push(`Nałóż <b>${d.vuln}</b> Podatności${all}.`);
@@ -62,15 +104,32 @@ function cardText(d) {
   if (d.plating) p.push(`Na koniec tury zyskaj <b>${d.plating}</b> pancerza.`);
   if (d.thorns) p.push(`Zyskaj <b>${d.thorns}</b> Kolców.`);
   if (d.regen) p.push(`Na początku tury lecz <b>${d.regen}</b> HP.`);
+  if (d.focus) p.push(`Zyskaj <b>${d.focus}</b> Skupienia.`);
+  if (d.slots) p.push(`Zyskaj <b>${d.slots}</b> ${plural(d.slots, 'miejsce', 'miejsca', 'miejsc')} na kule.`);
+  if (d.loop) p.push(`Na koniec tury pierwsza kula działa dodatkowo <b>${d.loop}</b>×.`);
+  if (d.channel) p.push(`Stwórz ${d.channel.length > 1 ? 'kule' : 'kulę'}: ${d.channel.map(o => `${ORBS[o].icon} ${ORBS[o].name}`).join(', ')}.`);
+  if (d.evokeAll) p.push('Uwolnij wszystkie kule.');
+  else if (d.evoke) p.push(`Uwolnij pierwszą kulę${d.evoke > 1 ? ` <b>${d.evoke}</b>×` : ''}.`);
+  if (d.bonusIfMinion) p.push(`Jeśli masz sługę, zadaj dodatkowo <b>${d.bonusIfMinion}</b>.`);
+  if (d.sacrifice) p.push('Poświęć pierwszego sługę.');
+  if (d.sacrificeAll) p.push(`Poświęć wszystkich sług. Zadaj <b>${d.blast}</b> obrażeń wszystkim wrogom za każdego.`);
+  if (d.healAll) p.push('Lecz wszystkich sług do pełna.');
+  else if (d.healMinions) p.push(`Lecz wszystkich sług o <b>${d.healMinions}</b>.`);
+  if (d.summon) p.push(`Przywołaj ${d.summon.length > 1 ? 'sługi' : 'sługę'}: ${d.summon.map(m => `${MINIONS[m].icon} ${MINIONS[m].name}`).join(', ')}.`);
+  if (d.commandAll) p.push('Każdy sługa działa natychmiast.');
+  if (d.necro) p.push(`Słudzy zadają i dają o <b>${d.necro}</b> więcej.`);
+  if (d.spawnEach) p.push(`Na początku każdej tury przywołaj: ${MINIONS[d.spawnEach].icon} ${MINIONS[d.spawnEach].name}.`);
   if (d.exhaust) p.push('<i>Wyczerp.</i>');
   return p.join(' ');
 }
 
 function cardEl(inst) {
   const d = cardDef(inst);
+  const text = cardText(d);
+  const long = text.replace(/<[^>]+>/g, '').length > 55; // długie opisy dostają mniejszą czcionkę
   const e = h('div', `card ${d.type} ${d.rarity} ${inst.up ? 'up' : ''}`);
   e.innerHTML = `<div class="cost">${d.cost}</div><div class="cname">${d.name}</div>` +
-    `<div class="art">${art('cards', d.id, d.icon)}</div><div class="ctype">${TYPE_PL[d.type]}</div><div class="ctext">${cardText(d)}</div>`;
+    `<div class="art">${art('cards', d.id, d.icon)}</div><div class="ctype">${TYPE_PL[d.type]}</div><div class="ctext${long ? ' long' : ''}">${text}</div>`;
   return e;
 }
 
@@ -85,11 +144,18 @@ function needsTarget(d) {
 
 /**
  * Zwraca karty danej rzadkości dostępne dla aktualnej postaci (wspólne + jej własne).
+ * Karty klasowe (pole `char`) trafiają się 3 razy częściej niż neutralne.
  * @param {string} rarity - Wymagana rzadkość karty.
- * @returns {string[]} Identyfikatory pasujących kart.
+ * @returns {string[]} Identyfikatory pasujących kart (z powtórzeniami jako wagami).
  */
 function cardPool(rarity) {
-  return Object.keys(CARDS).filter(id => CARDS[id].rarity === rarity && (!CARDS[id].chr || CARDS[id].chr === G.char));
+  const out = [];
+  Object.keys(CARDS).forEach(id => {
+    const c = CARDS[id];
+    if (c.rarity !== rarity || (c.char && c.char !== G.char)) return;
+    for (let k = 0; k < (c.char ? 3 : 1); k++) out.push(id);
+  });
+  return out;
 }
 
 /**
@@ -133,8 +199,18 @@ function renderHud() {
   if (!G) { hud.innerHTML = ''; return; }
   hud.innerHTML = '';
   const floor = G.node ? G.node.f + 1 : 0;
+  if (isCoop()) {
+    const canSwitch = (C && !C.over) || !!G.refresh;
+    G.players.forEach((pl, i) => {
+      const b = h(canSwitch ? 'button' : 'span', `pbadge p${i}${i === G.ap ? ' active' : ''}${pl.hp <= 0 ? ' dead' : ''}`,
+        `<b>${i + 1}</b> ${CHARACTERS[pl.char].name} ♥ ${Math.max(0, pl.hp)}/${pl.max}`);
+      if (canSwitch) b.onclick = () => switchPlayer(i);
+      hud.append(b);
+    });
+  } else {
+    hud.append(h('span', 'stat hp', `♥ ${G.hp}/${G.max}`));
+  }
   hud.append(
-    h('span', 'stat hp', `♥ ${G.hp}/${G.max}`),
     h('span', 'stat gold', `🪙 ${G.gold}`),
     h('span', 'stat', `Piętro ${floor}/${ROWS}`)
   );
@@ -157,7 +233,7 @@ function renderHud() {
   }
   hud.append(pots);
   const deck = h('button', 'btn small', `Talia (${G.deck.length})`);
-  deck.onclick = () => showDeck(G.deck, 'Twoja talia');
+  deck.onclick = () => showDeck(G.deck, isCoop() ? `Talia gracza ${G.ap + 1}` : 'Twoja talia');
   hud.append(deck);
 }
 

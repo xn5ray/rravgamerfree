@@ -3,12 +3,18 @@
 const TYPE_PL = { attack: 'Atak', skill: 'Umiejętność', power: 'Moc' };
 const ROWS = 15;
 
+/* Co-op (2 graczy): mnożniki do zrównoważenia walk. Zmieniaj tutaj, żeby dostroić trudność. */
+const COOP = {
+  hpScale: 1.7,   // tyle razy więcej HP mają wrogowie
+  goldScale: 1.5  // tyle razy więcej złota na start i za walki (złoto jest wspólne)
+};
+
 /* ---------- Karty ----------
    Pola: cost, type, rarity, icon, dmg, hits, aoe, block, vuln, weak, str, draw,
    energy, selfdmg, ritual, plating, thorns, exhaust. `up` nadpisuje pola po ulepszeniu.
    Dodatkowe pola: heal (lecz HP), regen (lecz HP na początku tury), blockDmg (obrażenia = pancerz),
    doubleBlock (podwój pancerz), strMul (Siła liczy się N razy), vulnBonus (+obrażenia, gdy wróg ma Podatność),
-   chr (id postaci: karta pojawia się tylko w nagrodach i sklepie tej postaci). */
+   char (id postaci: karta pojawia się tylko w nagrodach i sklepie tej postaci). */
 const CARDS = {
   cios:       { name: 'Cios',               type: 'attack', cost: 1, rarity: 'start',    icon: '🗡️', dmg: 6,  up: { dmg: 9 } },
   gard:       { name: 'Gard',               type: 'skill',  cost: 1, rarity: 'start',    icon: '🛡️', block: 5, up: { block: 8 } },
@@ -34,6 +40,58 @@ const CARDS = {
   ciernie:    { name: 'Rafa kolców',        type: 'power',  cost: 1, rarity: 'rare',     icon: '🪸', thorns: 3, up: { thorns: 5 } },
   fala:       { name: 'Fala przypływu',     type: 'attack', cost: 2, rarity: 'rare',     icon: '🌊', dmg: 18, aoe: true, exhaust: true, up: { dmg: 24 } },
 
+  /* ---- Karty Automatu (pole `char` ogranicza je do tej postaci) ----
+     channel: lista kul do stworzenia, evoke: ile razy uwolnić pierwszą kulę,
+     evokeAll: uwolnij wszystkie kule, focus / slots / loop: statystyki orbów,
+     perOrb: obrażenia razy liczba kul. */
+  zap:        { char: 'automat', name: 'Zwarcie',               type: 'skill',  cost: 1, rarity: 'start',    icon: '⚡', channel: ['blysk'], up: { cost: 0 } },
+  dwuklik:    { char: 'automat', name: 'Podwójny impuls',       type: 'skill',  cost: 1, rarity: 'start',    icon: '🔁', evoke: 2, up: { cost: 0 } },
+
+  wyladowanie:{ char: 'automat', name: 'Wyładowanie',           type: 'attack', cost: 1, rarity: 'common',   icon: '🌩️', dmg: 6, channel: ['blysk'], up: { dmg: 9 } },
+  mrozny:     { char: 'automat', name: 'Mroźny podmuch',        type: 'attack', cost: 1, rarity: 'common',   icon: '❄️', dmg: 6, channel: ['szron'], up: { dmg: 9 } },
+  chlodzenie: { char: 'automat', name: 'Chłodzenie',            type: 'skill',  cost: 1, rarity: 'common',   icon: '🧊', draw: 1, channel: ['szron'], up: { draw: 2 } },
+  ciemnosc:   { char: 'automat', name: 'Ciemność',              type: 'skill',  cost: 1, rarity: 'common',   icon: '🌌', channel: ['mrok'], up: { cost: 0 } },
+  rozladowanie:{char: 'automat', name: 'Rozładowanie',          type: 'skill',  cost: 1, rarity: 'common',   icon: '💨', block: 4, evoke: 1, up: { block: 7 } },
+
+  strojenie:  { char: 'automat', name: 'Strojenie',             type: 'power',  cost: 1, rarity: 'uncommon', icon: '🎛️', focus: 1, up: { focus: 2 } },
+  rozszerzenie:{char: 'automat', name: 'Rozszerzenie obwodów',  type: 'power',  cost: 1, rarity: 'uncommon', icon: '🔌', slots: 2, up: { slots: 3 } },
+  fuzja:      { char: 'automat', name: 'Fuzja',                 type: 'skill',  cost: 2, rarity: 'uncommon', icon: '🔮', channel: ['plazma'], up: { cost: 1 } },
+  salwa_kul:  { char: 'automat', name: 'Salwa kul',             type: 'attack', cost: 2, rarity: 'uncommon', icon: '🎆', dmg: 4, perOrb: true, up: { dmg: 6 } },
+  mrozna_fala:{ char: 'automat', name: 'Mroźna fala',           type: 'skill',  cost: 1, rarity: 'uncommon', icon: '🥶', channel: ['szron', 'szron'], exhaust: true, up: { cost: 0 } },
+  lancuch:    { char: 'automat', name: 'Zwarcie łańcuchowe',    type: 'attack', cost: 1, rarity: 'uncommon', icon: '⛓️', dmg: 5, aoe: true, channel: ['blysk'], up: { dmg: 8 } },
+
+  petla:      { char: 'automat', name: 'Pętla',                 type: 'power',  cost: 1, rarity: 'rare',     icon: '♾️', loop: 1, up: { loop: 2 } },
+  wszystkie:  { char: 'automat', name: 'Wielokrotne uwolnienie',type: 'skill',  cost: 1, rarity: 'rare',     icon: '💥', evokeAll: true, up: { cost: 0 } },
+  tecza:      { char: 'automat', name: 'Tęcza',                 type: 'skill',  cost: 2, rarity: 'rare',     icon: '🌈', channel: ['blysk', 'szron', 'mrok'], exhaust: true, up: { cost: 1 } },
+  przeciazenie:{char: 'automat', name: 'Przeciążenie rdzenia',  type: 'attack', cost: 2, rarity: 'rare',     icon: '☢️', dmg: 12, evoke: 1, up: { dmg: 17 } },
+
+  /* ---- Karty Nekromantki ----
+     summon: lista sług do przywołania, healMinions / healAll: leczenie sług,
+     sacrifice: poświęć pierwszego sługę, sacrificeAll + blast: poświęć wszystkich
+     i zadaj `blast` obrażeń wszystkim wrogom za każdego, commandAll: każdy sługa działa
+     od razu, necro: bonus do obrażeń i pancerza sług, spawnEach: przywołuj sługę co turę,
+     perMinion: obrażenia razy liczba sług, bonusIfMinion: dodatkowe obrażenia, gdy masz sługę. */
+  wezwanie:   { char: 'nekromantka', name: 'Wezwanie szkieletu',   type: 'skill',  cost: 1, rarity: 'start',    icon: '💀', summon: ['szkielet'], up: { cost: 0 } },
+  kosc_mur:   { char: 'nekromantka', name: 'Kościany mur',         type: 'skill',  cost: 1, rarity: 'start',    icon: '🦴', block: 5, healMinions: 3, up: { block: 8, healMinions: 5 } },
+
+  zew:        { char: 'nekromantka', name: 'Zew grobu',            type: 'skill',  cost: 1, rarity: 'common',   icon: '👻', summon: ['widmo'], up: { cost: 0 } },
+  kosciany_pocisk:{ char: 'nekromantka', name: 'Kościany pocisk',  type: 'attack', cost: 1, rarity: 'common',   icon: '🦷', dmg: 6, bonusIfMinion: 3, up: { dmg: 8, bonusIfMinion: 5 } },
+  dotyk:      { char: 'nekromantka', name: 'Dotyk śmierci',        type: 'attack', cost: 1, rarity: 'common',   icon: '🫳', dmg: 4, weak: 1, up: { dmg: 7, weak: 2 } },
+  zbieranie:  { char: 'nekromantka', name: 'Zbieranie kości',      type: 'skill',  cost: 1, rarity: 'common',   icon: '🧺', draw: 2, healMinions: 2, up: { draw: 3 } },
+  rozszarpanie:{char: 'nekromantka', name: 'Rozszarpanie',         type: 'attack', cost: 0, rarity: 'common',   icon: '🩸', dmg: 3, bonusIfMinion: 4, up: { dmg: 5, bonusIfMinion: 6 } },
+
+  utopiony_k: { char: 'nekromantka', name: 'Przywołanie utopionego', type: 'skill', cost: 2, rarity: 'uncommon', icon: '🧟', summon: ['utopiony'], block: 6, up: { block: 10 } },
+  golem_k:    { char: 'nekromantka', name: 'Złożenie golema',      type: 'skill',  cost: 2, rarity: 'uncommon', icon: '🏗️', summon: ['golem'], up: { cost: 1 } },
+  ofiara_s:   { char: 'nekromantka', name: 'Mroczna ofiara',       type: 'skill',  cost: 0, rarity: 'uncommon', icon: '🕯️', sacrifice: 1, energy: 2, draw: 1, up: { draw: 2 } },
+  rozkaz:     { char: 'nekromantka', name: 'Rozkaz ataku',         type: 'skill',  cost: 1, rarity: 'uncommon', icon: '📯', commandAll: true, up: { cost: 0 } },
+  moc_nieumarlych:{ char: 'nekromantka', name: 'Moc nieumarłych',  type: 'power',  cost: 1, rarity: 'uncommon', icon: '🩻', necro: 2, up: { necro: 3 } },
+  nieumarla_salwa:{ char: 'nekromantka', name: 'Nieumarła salwa',  type: 'attack', cost: 2, rarity: 'uncommon', icon: '☠️', dmg: 5, perMinion: true, up: { dmg: 7 } },
+
+  legion:     { char: 'nekromantka', name: 'Legion',               type: 'skill',  cost: 3, rarity: 'rare',     icon: '⚰️', summon: ['szkielet', 'szkielet', 'szkielet'], exhaust: true, up: { cost: 2 } },
+  pan_grobu:  { char: 'nekromantka', name: 'Pan grobu',            type: 'power',  cost: 2, rarity: 'rare',     icon: '👑', spawnEach: 'szkielet', up: { cost: 1 } },
+  eksplozja:  { char: 'nekromantka', name: 'Eksplozja kości',      type: 'skill',  cost: 1, rarity: 'rare',     icon: '💣', sacrificeAll: true, blast: 8, up: { blast: 11 } },
+  wskrzeszenie:{char: 'nekromantka', name: 'Wskrzeszenie',         type: 'skill',  cost: 1, rarity: 'rare',     icon: '🪦', healAll: true, summon: ['szkielet'], exhaust: true, up: { cost: 0 } },
+
   /* --- nowe karty wspólne --- */
   szarpniecie:{ name: 'Szarpnięcie liną',   type: 'attack', cost: 0, rarity: 'common',   icon: '🧵', dmg: 4, up: { dmg: 6 } },
   bosak:      { name: 'Cios bosakiem',      type: 'attack', cost: 1, rarity: 'common',   icon: '🪓', dmg: 10, selfdmg: 2, up: { dmg: 13 } },
@@ -52,21 +110,21 @@ const CARDS = {
   wir:        { name: 'Wir',                type: 'attack', cost: 2, rarity: 'rare',     icon: '🌀', dmg: 5, hits: 3, aoe: true, up: { dmg: 7 } },
 
   /* --- karty postaci (pojawiają się tylko u właściwej postaci) --- */
-  promien:    { name: 'Promień latarni',    type: 'attack', cost: 1, rarity: 'common',   icon: '🌟', dmg: 7, weak: 1, chr: 'latarnik', up: { dmg: 10, weak: 2 } },
-  opieka:     { name: 'Opieka latarnika',   type: 'skill',  cost: 1, rarity: 'uncommon', icon: '⛑️', block: 7, heal: 3, chr: 'latarnik', up: { block: 10, heal: 5 } },
-  majak:      { name: 'Maják',              type: 'power',  cost: 2, rarity: 'rare',     icon: '🗼', plating: 4, regen: 2, chr: 'latarnik', up: { plating: 6, regen: 3 } },
+  promien:    { name: 'Promień latarni',    type: 'attack', cost: 1, rarity: 'common',   icon: '🌟', dmg: 7, weak: 1, char: 'latarnik', up: { dmg: 10, weak: 2 } },
+  opieka:     { name: 'Opieka latarnika',   type: 'skill',  cost: 1, rarity: 'uncommon', icon: '⛑️', block: 7, heal: 3, char: 'latarnik', up: { block: 10, heal: 5 } },
+  majak:      { name: 'Maják',              type: 'power',  cost: 2, rarity: 'rare',     icon: '🗼', plating: 4, regen: 2, char: 'latarnik', up: { plating: 6, regen: 3 } },
 
-  rozped:     { name: 'Rozpęd',             type: 'skill',  cost: 0, rarity: 'common',   icon: '🏃', str: 1, exhaust: true, chr: 'harpunniczka', up: { str: 2 } },
-  furia:      { name: 'Furia harpunu',      type: 'attack', cost: 1, rarity: 'uncommon', icon: '🎯', dmg: 6, strMul: 3, chr: 'harpunniczka', up: { dmg: 8 } },
-  szal:       { name: 'Szał łowcy',         type: 'power',  cost: 2, rarity: 'rare',     icon: '😤', ritual: 2, chr: 'harpunniczka', up: { cost: 1 } },
+  rozped:     { name: 'Rozpęd',             type: 'skill',  cost: 0, rarity: 'common',   icon: '🏃', str: 1, exhaust: true, char: 'harpunniczka', up: { str: 2 } },
+  furia:      { name: 'Furia harpunu',      type: 'attack', cost: 1, rarity: 'uncommon', icon: '🎯', dmg: 6, strMul: 3, char: 'harpunniczka', up: { dmg: 8 } },
+  szal:       { name: 'Szał łowcy',         type: 'power',  cost: 2, rarity: 'rare',     icon: '😤', ritual: 2, char: 'harpunniczka', up: { cost: 1 } },
 
-  taran:      { name: 'Taran',              type: 'attack', cost: 1, rarity: 'common',   icon: '🐏', blockDmg: true, chr: 'kotwiczny', up: { cost: 0 } },
-  mur:        { name: 'Podwojony mur',      type: 'skill',  cost: 2, rarity: 'uncommon', icon: '🧱', doubleBlock: true, exhaust: true, chr: 'kotwiczny', up: { cost: 1 } },
-  twierdza:   { name: 'Twierdza',           type: 'power',  cost: 2, rarity: 'rare',     icon: '🏯', plating: 4, thorns: 2, chr: 'kotwiczny', up: { plating: 6, thorns: 3 } },
+  taran:      { name: 'Taran',              type: 'attack', cost: 1, rarity: 'common',   icon: '🐏', blockDmg: true, char: 'kotwiczny', up: { cost: 0 } },
+  mur:        { name: 'Podwojony mur',      type: 'skill',  cost: 2, rarity: 'uncommon', icon: '🧱', doubleBlock: true, exhaust: true, char: 'kotwiczny', up: { cost: 1 } },
+  twierdza:   { name: 'Twierdza',           type: 'power',  cost: 2, rarity: 'rare',     icon: '🏯', plating: 4, thorns: 2, char: 'kotwiczny', up: { plating: 6, thorns: 3 } },
 
-  szept:      { name: 'Szept z głębi',      type: 'skill',  cost: 0, rarity: 'common',   icon: '🤫', weak: 1, chr: 'szeptaczka', up: { weak: 2 } },
-  slabypunkt: { name: 'Cios w słaby punkt', type: 'attack', cost: 1, rarity: 'uncommon', icon: '🌑', dmg: 5, vulnBonus: 8, chr: 'szeptaczka', up: { dmg: 7, vulnBonus: 11 } },
-  klatwa:     { name: 'Przekleństwo głębin',type: 'skill',  cost: 2, rarity: 'rare',     icon: '👁️', vuln: 4, weak: 4, aoe: true, exhaust: true, chr: 'szeptaczka', up: { vuln: 5, weak: 5 } }
+  szept:      { name: 'Szept z głębi',      type: 'skill',  cost: 0, rarity: 'common',   icon: '🤫', weak: 1, char: 'szeptaczka', up: { weak: 2 } },
+  slabypunkt: { name: 'Cios w słaby punkt', type: 'attack', cost: 1, rarity: 'uncommon', icon: '🌑', dmg: 5, vulnBonus: 8, char: 'szeptaczka', up: { dmg: 7, vulnBonus: 11 } },
+  klatwa:     { name: 'Przekleństwo głębin',type: 'skill',  cost: 2, rarity: 'rare',     icon: '👁️', vuln: 4, weak: 4, aoe: true, exhaust: true, char: 'szeptaczka', up: { vuln: 5, weak: 5 } }
 };
 
 /* ---------- Postacie ----------
@@ -94,7 +152,36 @@ const CHARACTERS = {
     name: 'Szeptaczka', icon: '🧙‍♀️', hp: 58, gold: 99, relics: ['muszla'],
     desc: 'Krucha, ale dobiera o 1 kartę więcej i osłabia wrogów.',
     deck: ['cios', 'cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'sygnal', 'oddech', 'rytual']
+  },
+  automat: {
+    name: 'Automat', icon: '🤖', hp: 64, gold: 99, relics: ['rdzen'], orbs: true,
+    desc: 'Tworzy kule, które działają same co turę. Skupienie wzmacnia je wszystkie.',
+    deck: ['cios', 'cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'gard', 'zap', 'dwuklik']
+  },
+  nekromantka: {
+    name: 'Nekromantka', icon: '🧟‍♀️', hp: 66, gold: 99, relics: ['amulet'], minions: true,
+    desc: 'Przywołuje sługi, które walczą za nią. Wrogowie najpierw biją sługi.',
+    deck: ['cios', 'cios', 'cios', 'cios', 'gard', 'gard', 'gard', 'gard', 'wezwanie', 'kosc_mur']
   }
+};
+
+/* ---------- Kule (mechanika Automatu) ----------
+   Opisy pasywnych i uwolnionych efektów liczy funkcja orbDesc() w combat.js. */
+const ORBS = {
+  blysk:  { name: 'Błysk',  icon: '⚡' },
+  szron:  { name: 'Szron',  icon: '🧊' },
+  mrok:   { name: 'Mrok',   icon: '🌌' },
+  plazma: { name: 'Plazma', icon: '🔮' }
+};
+
+/* ---------- Sługi (mechanika Nekromantki) ----------
+   hp: życie, atk: obrażenia zadawane losowemu wrogowi na koniec tury,
+   block: pancerz dawany graczowi na koniec tury. */
+const MINIONS = {
+  szkielet: { name: 'Szkielet',       icon: '💀', hp: 7,  atk: 3 },
+  widmo:    { name: 'Widmo',          icon: '👻', hp: 4,  block: 3 },
+  utopiony: { name: 'Utopiony',       icon: '🧟', hp: 9,  atk: 4 },
+  golem:    { name: 'Kościany golem', icon: '🦴', hp: 14, atk: 2 }
 };
 const CARD_PRICE = { common: 50, uncommon: 75, rare: 150 };
 
@@ -149,7 +236,9 @@ const RELICS = {
   dzwon:     { name: 'Dzwon alarmowy',      icon: '🔔', desc: 'Na początku walki nakładasz 1 Osłabienia i 1 Podatności na wszystkich wrogów.' },
   lza:       { name: 'Łza syreny',          icon: '💎', desc: 'Po każdej walce zyskujesz 2 maks. HP.' },
   mapa:      { name: 'Pognieciona mapa',    icon: '🗺️', desc: 'Po walce masz o 25% większą szansę na miksturę.' },
-  pas:       { name: 'Pas ratunkowy',       icon: '🆘', desc: 'Raz na przebieg: gdy twoje HP spadnie do 0, wstajesz z 15 HP.' }
+  pas:       { name: 'Pas ratunkowy',       icon: '🆘', desc: 'Raz na przebieg: gdy twoje HP spadnie do 0, wstajesz z 15 HP.' },
+  rdzen:     { name: 'Pęknięty rdzeń',      icon: '🔋', desc: 'Zaczynasz każdą walkę z kulą Błysku.', rarity: 'start' },
+  amulet:    { name: 'Kościany amulet',     icon: '📿', desc: 'Zaczynasz każdą walkę ze Szkieletem.', rarity: 'start' }
 };
 
 /* ---------- Mikstury ---------- */

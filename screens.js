@@ -14,17 +14,22 @@ function showMenu() {
     ${wins ? `<p class="lead">Wygrane przebiegi: <b>${wins}</b></p>` : ''}`;
   const b = h('button', 'btn primary', 'Nowa gra');
   b.id = 'newGame';
-  b.onclick = showCharSelect;
-  box.append(b);
+  b.onclick = () => showCharSelect(1);
+  const b2 = h('button', 'btn', 'Co-op lokalny (2 graczy)');
+  b2.id = 'newGameCoop';
+  b2.onclick = () => showCharSelect(2);
+  const bs = h('div', 'choices');
+  bs.append(b, b2);
+  box.append(bs);
   s.append(box);
 }
 
-function showCharSelect() {
+function showCharSelect(count = 1, picked = []) {
   renderHud();
   const s = screen();
   s.innerHTML = '';
   const box = h('div', 'center');
-  box.append(h('h2', '', 'Wybierz postać'));
+  box.append(h('h2', '', count > 1 ? `Gracz ${picked.length + 1}: wybierz postać` : 'Wybierz postać'));
   const row = h('div', 'row chars');
   Object.entries(CHARACTERS).forEach(([id, c]) => {
     const b = h('button', 'panel charcard');
@@ -33,24 +38,30 @@ function showCharSelect() {
     b.innerHTML = `<div class="portrait">${art('characters', id, c.icon)}</div><div class="cname">${c.name}</div>` +
       `<div class="hp">♥ ${c.hp} HP · 🪙 ${c.gold}</div><p class="lead">${c.desc}</p>` +
       `<div class="relicline">${relics}</div>`;
-    b.onclick = () => startRun(id);
+    b.onclick = () => {
+      const all = [...picked, id];
+      if (all.length >= count) startRun(count > 1 ? all : id); else showCharSelect(count, all);
+    };
     row.append(b);
   });
   box.append(row);
   const back = h('button', 'btn', 'Wstecz');
-  back.onclick = showMenu;
+  back.onclick = () => (picked.length ? showCharSelect(count, picked.slice(0, -1)) : showMenu());
   box.append(back);
   s.append(box);
 }
 
-function startRun(charId) {
-  const c = CHARACTERS[charId];
-  G = {
-    char: charId, hp: c.hp, max: c.hp, gold: c.gold,
-    deck: c.deck.map(id => ({ id, up: false })),
-    relics: [], potions: [], node: null, map: genMap(), removals: 0
-  };
-  c.relics.forEach(gainRelic);
+function startRun(charIds) {
+  const ids = Array.isArray(charIds) ? charIds : [charIds];
+  const coop = ids.length > 1;
+  const players = ids.map(id => {
+    const c = CHARACTERS[id];
+    return { char: id, hp: c.hp, max: c.hp, deck: c.deck.map(d => ({ id: d, up: false })), relics: [], potions: [], pasUsed: false };
+  });
+  const gold = ids.reduce((a, id) => a + CHARACTERS[id].gold, 0) / ids.length;
+  G = { players, ap: 0, gold: Math.round(gold * (coop ? COOP.goldScale : 1)), node: null, map: genMap(), removals: 0, refresh: null };
+  delegate(G, PLAYER_KEYS, 'players');
+  ids.forEach((id, i) => withPlayer(i, () => CHARACTERS[id].relics.forEach(gainRelic)));
   showMap();
 }
 
@@ -137,70 +148,83 @@ function showMap() {
 
 function enterNode(n) {
   G.node = n;
+  G.refresh = null;
   if (n.type === 'fight' || n.type === 'elite' || n.type === 'boss') startCombat(n.type);
   else if (n.type === 'rest') showRest();
   else if (n.type === 'shop') showShop();
   else showEvent();
 }
-function leaveNode() { G.node.done = true; showMap(); }
+function leaveNode() { G.node.done = true; G.refresh = null; setActive(0); showMap(); }
 
 /* ---------- Nagrody ---------- */
 function showReward(r) {
+  G.refresh = null;
   renderHud();
   const s = screen();
   s.innerHTML = '';
   const box = h('div', 'center');
+  const multi = isCoop();
   box.append(h('h2', '', 'Zwycięstwo'));
   box.append(h('p', 'lead', `Zdobywasz <b>${r.gold}</b> złota.`));
   if (r.relic) {
     const R = RELICS[r.relic];
-    box.append(h('p', 'lead', `Relikt: ${R.icon} <b>${R.name}</b> – ${R.desc}`));
+    box.append(h('p', 'lead', `Relikt${multi ? ` dla gracza ${r.relicFor + 1}` : ''}: ${R.icon} <b>${R.name}</b> – ${R.desc}`));
   }
-  if (r.potion) {
-    const P = POTIONS[r.potion];
-    const b = h('button', 'btn', `${P.icon} Weź: ${P.name} (${P.desc})`);
-    b.onclick = () => {
-      if (G.potions.length >= 3) { toast('Masz komplet mikstur'); return; }
-      G.potions.push(r.potion); b.remove(); renderHud();
-    };
-    box.append(b);
-  }
-  box.append(h('p', 'lead', 'Wybierz kartę do talii:'));
-  const row = h('div', 'row');
-  r.cards.forEach(inst => {
-    const e = cardEl(inst);
-    e.classList.add('clickable');
-    e.tabIndex = 0;
-    const take = () => {
-      if (r.taken) return;
-      r.taken = true; G.deck.push({ ...inst }); leaveNode();
-    };
-    e.onclick = take;
-    e.onkeydown = ev => { if (ev.key === 'Enter') take(); };
-    row.append(e);
+  const finishIfDone = () => { if (r.pc.every(x => x.taken)) leaveNode(); else showReward(r); };
+  r.pc.forEach((pc, i) => {
+    const sec = h('div', multi ? `rewardsec p${i}` : 'rewardsec solo');
+    if (multi) sec.append(h('h3', '', `Gracz ${i + 1}: ${playerName(i)}`));
+    if (pc.potion) {
+      const P = POTIONS[pc.potion];
+      const b = h('button', 'btn', `${P.icon} Weź: ${P.name} (${P.desc})`);
+      b.onclick = () => {
+        if (G.players[i].potions.length >= 3) { toast('Masz komplet mikstur'); return; }
+        G.players[i].potions.push(pc.potion); pc.potion = null; showReward(r);
+      };
+      sec.append(b);
+    }
+    if (pc.taken) { sec.append(h('p', 'lead', 'Wybór zrobiony.')); box.append(sec); return; }
+    sec.append(h('p', 'lead', 'Wybierz kartę do talii:'));
+    const row = h('div', 'row');
+    pc.cards.forEach(inst => {
+      const e = cardEl(inst);
+      e.classList.add('clickable');
+      e.tabIndex = 0;
+      const take = () => {
+        if (pc.taken) return;
+        pc.taken = true; G.players[i].deck.push({ ...inst }); finishIfDone();
+      };
+      e.onclick = take;
+      e.onkeydown = ev => { if (ev.key === 'Enter') take(); };
+      row.append(e);
+    });
+    sec.append(row);
+    const skip = h('button', 'btn', 'Pomiń kartę');
+    skip.onclick = () => { if (!pc.taken) { pc.taken = true; finishIfDone(); } };
+    sec.append(skip);
+    box.append(sec);
   });
-  box.append(row);
-  const skip = h('button', 'btn', 'Pomiń kartę');
-  skip.onclick = () => { if (!r.taken) { r.taken = true; leaveNode(); } };
-  box.append(skip);
   s.append(box);
 }
 
 /* ---------- Ognisko ---------- */
-function showRest() {
+function showRest(i = 0) {
+  setActive(i);
   renderHud();
   const s = screen();
   s.innerHTML = '';
   const box = h('div', 'center');
-  box.innerHTML = `<div class="emoji-big">🔥</div><h2>Ognisko</h2><p class="lead">Płomień trzyma sztorm na dystans. Masz chwilę.</p>`;
+  box.innerHTML = `<div class="emoji-big">🔥</div><h2>Ognisko</h2><p class="lead">Płomień trzyma sztorm na dystans. Masz chwilę.</p>` +
+    (isCoop() ? `<p class="lead who p${i}">Gracz ${i + 1}: ${playerName(i)}</p>` : '');
+  const next = () => (i + 1 < G.players.length ? showRest(i + 1) : leaveNode());
   const choices = h('div', 'choices');
   const amount = Math.floor(G.max * 0.3);
   const rest = h('button', 'btn', `Odpocznij: lecz ${amount} HP`);
-  rest.onclick = () => { heal(amount); leaveNode(); };
+  rest.onclick = () => { heal(amount); next(); };
   const upgradable = G.deck.filter(c => !c.up);
   const up = h('button', 'btn', 'Ulepsz kartę');
   up.disabled = !upgradable.length;
-  up.onclick = () => showDeck(upgradable, 'Wybierz kartę do ulepszenia', inst => { inst.up = true; leaveNode(); });
+  up.onclick = () => showDeck(upgradable, 'Wybierz kartę do ulepszenia', inst => { inst.up = true; next(); });
   choices.append(rest, up);
   box.append(choices);
   s.append(box);
@@ -216,8 +240,10 @@ function showShop() {
   if (!n.shop) {
     const price = id => Math.round(CARD_PRICE[CARDS[id].rarity] * (0.9 + Math.random() * 0.25));
     const ids = [];
-    ['common', 'common', 'uncommon', 'uncommon', 'rare'].forEach(r => {
-      const pool = cardPool(r).filter(id => !ids.includes(id));
+    const rarities = ['common', 'common', 'uncommon', 'uncommon', 'rare'];
+    if (isCoop()) rarities.push('common', 'uncommon');
+    rarities.forEach((r, k) => {
+      const pool = withPlayer(k % G.players.length, () => cardPool(r)).filter(id => !ids.includes(id));
       ids.push(pick(pool));
     });
     const rel = randomRelic();
@@ -233,19 +259,23 @@ function showShop() {
 
 function drawShop() {
   const sh = G.node.shop;
+  G.refresh = drawShop;
   renderHud();
   const s = screen();
   s.innerHTML = '';
   const box = h('div', 'center');
   box.append(h('h2', '', 'Sklep'), h('p', 'lead', 'Handlarz z wraku sprzedaje to, co wyłowił.'));
+  if (isCoop()) box.append(h('p', `lead who p${G.ap}`, `Kupujesz dla: gracz ${G.ap + 1} (${playerName(G.ap)}). Przełącz gracza u góry. Złoto jest wspólne.`));
   const row = h('div', 'row');
   sh.cards.forEach(item => {
     const w = h('div', 'shop-item' + (item.sold ? ' sold' : ''));
     const e = cardEl(item.inst);
     e.classList.add('clickable');
     const buy = h('button', 'btn small', `Kup za ${item.price} 🪙`);
-    buy.disabled = G.gold < item.price;
-    const doBuy = () => { if (G.gold < item.price || item.sold) return; G.gold -= item.price; item.sold = true; G.deck.push({ ...item.inst }); drawShop(); };
+    const foreign = !!CARDS[item.inst.id].char && CARDS[item.inst.id].char !== G.char;
+    buy.disabled = G.gold < item.price || foreign;
+    if (foreign) buy.textContent = 'Inna postać';
+    const doBuy = () => { if (G.gold < item.price || item.sold || foreign) return; G.gold -= item.price; item.sold = true; G.deck.push({ ...item.inst }); drawShop(); };
     e.onclick = doBuy; buy.onclick = doBuy;
     w.append(e, buy);
     row.append(w);
@@ -337,25 +367,28 @@ const EVENTS = [
 
 function showEvent() {
   const ev = G.node.event || (G.node.event = pick(EVENTS));
+  G.refresh = showEvent;
   renderHud();
   const s = screen();
   s.innerHTML = '';
   const box = h('div', 'center');
-  box.innerHTML = `<div class="emoji-big">${ev.icon}</div><h2>${ev.title}</h2><p class="lead">${ev.text}</p>`;
+  box.innerHTML = `<div class="emoji-big">${ev.icon}</div><h2>${ev.title}</h2><p class="lead">${ev.text}</p>` +
+    (isCoop() ? `<p class="lead who p${G.ap}">Decyduje: gracz ${G.ap + 1} (${playerName(G.ap)}). Przełącz gracza u góry. Wybór dotyczy tylko jego.</p>` : '');
   const choices = h('div', 'choices');
   const finish = text => {
+    G.refresh = null;
     renderHud();
     s.innerHTML = '';
     const b2 = h('div', 'center');
     b2.append(h('p', 'lead', text));
     const c = h('button', 'btn primary', 'Dalej');
-    c.onclick = () => { if (G.hp <= 0) showEnd(false); else leaveNode(); };
+    c.onclick = () => { if (G.players.every(p => p.hp <= 0)) showEnd(false); else leaveNode(); };
     b2.append(c);
     s.append(b2);
   };
   ev.choices.forEach(c => {
     const b = h('button', 'btn', c.label);
-    b.onclick = () => { choices.querySelectorAll('button').forEach(x => x.disabled = true); c.fn(finish); };
+    b.onclick = () => { G.refresh = null; choices.querySelectorAll('button').forEach(x => x.disabled = true); c.fn(finish); };
     choices.append(b);
   });
   box.append(choices);
@@ -374,7 +407,8 @@ function showEnd(win) {
   box.innerHTML = win
     ? `<div class="emoji-big">🌅</div><h1>Światło wróciło</h1><p class="lead">Serce Głębiny przestaje bić, a latarnia znów świeci nad morzem.</p>`
     : `<div class="emoji-big">🌊</div><h1>Pochłonęła cię woda</h1><p class="lead">Dotarłeś na piętro ${floor} z ${ROWS}.</p>`;
-  box.append(h('p', 'lead', `Talia: ${G.deck.length} kart · relikty: ${G.relics.length} · złoto: ${G.gold}`));
+  G.players.forEach((p, i) => box.append(h('p', 'lead', `${isCoop() ? `Gracz ${i + 1} (${CHARACTERS[p.char].name}): ` : ''}talia: ${p.deck.length} kart · relikty: ${p.relics.length}`)));
+  box.append(h('p', 'lead', `Złoto: ${G.gold}`));
   const b = h('button', 'btn primary', 'Zagraj ponownie');
   b.id = 'again';
   b.onclick = showMenu;

@@ -78,10 +78,11 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
   background: var(--ink); border: 2px solid var(--brass); display: grid; place-items: center;
   font-weight: 700; font-size: 1.25em; color: #fff;
 }
-.card .cname { font-family: var(--display); font-size: 1.35em; margin-top: 2px; color: #fff; }
+.card .cname { font-family: var(--display); font-size: 1.1em; margin-top: 2px; padding: 0 1.15em; color: #fff; line-height: 1.1; }
 .card .art { font-size: calc(var(--cw) / 3.1); flex: 1; display: grid; place-items: center; min-height: 0; }
 .card .ctype { font-size: .8em; color: var(--mute); }
 .card .ctext { min-height: 4.4em; padding: 2px 2px 4px; }
+.card .ctext.long { font-size: .86em; line-height: 1.15; min-height: 0; }
 .card.up .cname { color: var(--glass); }
 .card.unplayable { filter: grayscale(.7) brightness(.7); }
 .card.selected { transform: translateY(-26px) scale(1.06); box-shadow: 0 0 0 3px var(--glass), 0 10px 20px rgba(0, 0, 0, .6); z-index: 5; }
@@ -100,6 +101,30 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
 .relicline .sprite { display: inline-block; height: 1.1em; width: auto; vertical-align: -0.15em; }
 .potion-slot .sprite { height: 24px; width: auto; }
 .node .sprite { width: 72%; height: 72%; }
+
+/* ---- kule Automatu ---- */
+.orbs { display: flex; gap: 6px; justify-content: center; min-height: 34px; margin-top: 4px; }
+.orb {
+  position: relative; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--glass);
+  background: rgba(127, 196, 176, .1); display: grid; place-items: center; font-size: 18px; cursor: help;
+}
+.orb.empty { border-style: dashed; opacity: .4; cursor: default; }
+.orb small { position: absolute; right: -5px; bottom: -6px; padding: 0 4px; border-radius: 8px; background: var(--ink); font-size: 11px; font-weight: 700; }
+.orb .sprite { height: 22px; width: auto; }
+
+/* ---- sługi Nekromantki ---- */
+.minions { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+.minion {
+  position: relative; width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--brass);
+  background: rgba(201, 162, 74, .1); display: grid; place-items: center; font-size: 24px; cursor: help;
+}
+.minion.front { outline: 2px solid var(--coral); outline-offset: 1px; }
+.minion.empty { border-style: dashed; opacity: .35; cursor: default; }
+.minion small {
+  position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); padding: 0 5px; border-radius: 8px;
+  background: var(--ink); font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.minion .sprite { height: 30px; width: auto; }
 
 /* ---- wybór postaci ---- */
 .chars { align-items: stretch; width: min(100%, 980px); }
@@ -190,3 +215,28 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Co-op lokalny ---------- */
+:root { --p0: #6fc3ff; --p1: #ffb347; }
+.players { display: flex; gap: 12px; align-items: flex-end; }
+.players.duo .figure { min-width: 84px; padding: 6px 8px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; }
+.players.duo .figure.active { border-color: var(--p0); background: rgba(255, 255, 255, .06); }
+.players.duo .figure.active:nth-child(2) { border-color: var(--p1); }
+.players.duo .figure .portrait { font-size: clamp(44px, 7vw, 72px); }
+.pnum { font-weight: 800; font-size: .8em; padding: 1px 8px; border-radius: 10px; color: #111; background: var(--p0); }
+.pnum.p1 { background: var(--p1); }
+.ready { font-weight: 800; color: #7ddc7d; font-size: .85em; }
+.tgt { font-size: .8em; font-weight: 800; padding: 0 6px; border-radius: 8px; color: #111; background: var(--p0); }
+.tgt.p1 { background: var(--p1); }
+.pbadge { font: inherit; font-weight: 700; color: inherit; background: rgba(255, 255, 255, .06); border: 2px solid var(--p0); border-radius: 14px; padding: 2px 10px; white-space: nowrap; }
+.pbadge.p1 { border-color: var(--p1); }
+button.pbadge { cursor: pointer; }
+.pbadge.active { background: rgba(255, 255, 255, .22); }
+.pbadge.dead { opacity: .4; text-decoration: line-through; }
+.who { font-weight: 800; padding: 2px 10px; border-radius: 12px; color: #111; background: var(--p0); }
+.who.p1 { background: var(--p1); }
+.rewardsec { margin: 10px 0; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--p0); }
+.rewardsec.p1 { border-color: var(--p1); }
+.rewardsec.solo { border: 0; padding: 0; margin: 0; }
+.hand.waiting { opacity: .45; filter: grayscale(.5); }
+@media (max-width: 700px) { .players.duo { gap: 4px; } .players.duo .figure { min-width: 60px; padding: 3px; } }
