@@ -14,7 +14,7 @@ Otwórz `index.html` w przeglądarce. Nie trzeba niczego instalować ani budowa�
 - Po walce wybierasz 1 z 3 kart do talii. Elity dają relikty.
 - Ognisko: lecz 30% HP albo ulepsz kartę. Sklep: karty, relikty, mikstury i usuwanie kart.
 - Statusy: **Siła** (większe obrażenia), **Osłabienie** (−25% obrażeń), **Podatność** (+50% otrzymywanych obrażeń), **Kolce** (atakujący dostają obrażenia).
-- Skrót klawiszowy: `E` kończy turę.
+- Skrót klawiszowy: `E` kończy turę (w co-op: przełącza gotowość).
 
 ### Automat i kule
 
@@ -46,6 +46,18 @@ Nekromantka walczy rękami **sług**. Karty przywołują ich na 4 miejsca obok p
 - **Wrogowie najpierw biją sługi:** każdy cios trafia pierwszego sługę z lewej (jest obrysowany na czerwono), a nadmiar obrażeń przechodzi na Ciebie. Pancerz nie chroni sług.
 - Karty mogą przywoływać sługi, leczyć je, poświęcać dla energii i kart albo wysadzać (Eksplozja kości). **Moc nieumarłych** wzmacnia ich obrażenia i pancerz, a **Pan grobu** przywołuje Szkieleta co turę.
 - Kartę przywołania lub poświęcenia da się zagrać tylko wtedy, gdy jest na to miejsce lub sługa (inaczej jest wyszarzona).
+
+### Co-op lokalny (2 graczy)
+
+W menu wybierz **Co-op lokalny**, a potem postać dla każdego gracza. Gracze walczą razem przeciwko wrogom na jednym ekranie.
+
+- Każdy gracz ma własną postać, talię, relikty, mikstury, HP, energię i rękę. Mapa i złoto są wspólne.
+- Tura jest wspólna i gra się w niej jednocześnie: przełączasz widok na rękę wybranego gracza (klik w postać albo plakietkę gracza u góry, `Tab`, `1` / `2`) i zagrywasz jego karty w dowolnej kolejności.
+- Gdy gracz skończy, naciska **Gotowy** (`E`). Można cofnąć gotowość. Tura wrogów zaczyna się, gdy wszyscy żywi gracze są gotowi.
+- Każdy wróg wybiera cel i pokazuje go przy zapowiedzi (`→ 1` albo `→ 2`).
+- Poległy gracz nie gra do końca walki, a po wygranej wstaje z 25% HP. Porażka następuje, gdy polegną obaj.
+- Wrogowie mają więcej HP, a nagrody są większe. Po walce każdy wybiera własną kartę, w ognisku każdy po kolei odpoczywa albo ulepsza kartę, a w sklepie i wydarzeniach przełączasz, który gracz kupuje lub decyduje.
+- Skalowanie ustawisz w `data.js`, w stałej `COOP` (`hpScale` dla HP wrogów, `goldScale` dla złota).
 
 ## Zawartość
 

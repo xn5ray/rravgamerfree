@@ -3,6 +3,12 @@
 const TYPE_PL = { attack: 'Atak', skill: 'Umiejętność', power: 'Moc' };
 const ROWS = 15;
 
+/* Co-op (2 graczy): mnożniki do zrównoważenia walk. Zmieniaj tutaj, żeby dostroić trudność. */
+const COOP = {
+  hpScale: 1.7,   // tyle razy więcej HP mają wrogowie
+  goldScale: 1.5  // tyle razy więcej złota na start i za walki (złoto jest wspólne)
+};
+
 /* ---------- Karty ----------
    Pola: cost, type, rarity, icon, dmg, hits, aoe, block, vuln, weak, str, draw,
    energy, selfdmg, ritual, plating, thorns, exhaust. `up` nadpisuje pola po ulepszeniu. */

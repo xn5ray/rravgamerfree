@@ -14,6 +14,48 @@ const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(0,
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const screen = () => $('#screen');
 
+/* ---------- Wielu graczy ----------
+   G.players[i] trzyma trwały stan gracza, a C.ps[i] stan jego walki. Pola takie jak G.hp, G.deck,
+   C.hand czy C.block są "delegowane" do aktywnego gracza (G.ap / C.ap), więc cały kod napisany
+   dla jednego gracza działa dla aktualnie wybranego. Do innego gracza przechodzi się przez
+   setActive() albo withPlayer(). Tryb solo to po prostu lista z jednym graczem. */
+const PLAYER_KEYS = ['char', 'hp', 'max', 'deck', 'relics', 'potions', 'pasUsed'];
+const COMBAT_KEYS = ['draw', 'hand', 'discard', 'exhaust', 'energy', 'maxEnergy', 'block', 'st', 'orbs', 'slots', 'nextEnergy', 'minions', 'minionSlots', 'spawn', 'ready'];
+
+function delegate(obj, keys, listKey) {
+  keys.forEach(k => Object.defineProperty(obj, k, {
+    get() { return this[listKey][this.ap][k]; },
+    set(v) { this[listKey][this.ap][k] = v; },
+    enumerable: true, configurable: true
+  }));
+}
+function setActive(i) { G.ap = i; if (C) C.ap = i; }
+function withPlayer(i, fn) {
+  const prev = G.ap;
+  setActive(i);
+  try { return fn(); } finally { setActive(prev); }
+}
+const isCoop = () => !!G && G.players.length > 1;
+const isAlive = i => G.players[i].hp > 0;
+const alivePlayers = () => G.players.map((p, i) => i).filter(isAlive);
+const pickTarget = () => { const a = alivePlayers(); return a.length ? pick(a) : 0; };
+const playerEl = () => document.getElementById('player-' + (C ? C.ap : 0));
+const playerName = i => CHARACTERS[G.players[i].char].name;
+
+/* Przełącza, którego gracza rękę i ekwipunek widać. W walce lub tam, gdzie ekran ma G.refresh. */
+function switchPlayer(i) {
+  if (!G || i === G.ap || i < 0 || i >= G.players.length) return;
+  if (C && !C.over) {
+    if (!isAlive(i)) { toast('Ten gracz poległ'); return; }
+    setActive(i);
+    C.selected = null;
+    renderCombat();
+  } else if (G.refresh) {
+    setActive(i);
+    G.refresh();
+  }
+}
+
 /* Zwraca <img> ze sprite'a z sprites.js albo emoji, gdy sprite'a brak lub się nie wczyta. */
 function art(kind, id, fallback) {
   const src = SPRITES[kind] && SPRITES[kind][id];
@@ -132,8 +174,18 @@ function renderHud() {
   if (!G) { hud.innerHTML = ''; return; }
   hud.innerHTML = '';
   const floor = G.node ? G.node.f + 1 : 0;
+  if (isCoop()) {
+    const canSwitch = (C && !C.over) || !!G.refresh;
+    G.players.forEach((pl, i) => {
+      const b = h(canSwitch ? 'button' : 'span', `pbadge p${i}${i === G.ap ? ' active' : ''}${pl.hp <= 0 ? ' dead' : ''}`,
+        `<b>${i + 1}</b> ${CHARACTERS[pl.char].name} ♥ ${Math.max(0, pl.hp)}/${pl.max}`);
+      if (canSwitch) b.onclick = () => switchPlayer(i);
+      hud.append(b);
+    });
+  } else {
+    hud.append(h('span', 'stat hp', `♥ ${G.hp}/${G.max}`));
+  }
   hud.append(
-    h('span', 'stat hp', `♥ ${G.hp}/${G.max}`),
     h('span', 'stat gold', `🪙 ${G.gold}`),
     h('span', 'stat', `Piętro ${floor}/${ROWS}`)
   );
@@ -156,7 +208,7 @@ function renderHud() {
   }
   hud.append(pots);
   const deck = h('button', 'btn small', `Talia (${G.deck.length})`);
-  deck.onclick = () => showDeck(G.deck, 'Twoja talia');
+  deck.onclick = () => showDeck(G.deck, isCoop() ? `Talia gracza ${G.ap + 1}` : 'Twoja talia');
   hud.append(deck);
 }
 

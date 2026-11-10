@@ -215,3 +215,28 @@ h2 { font-size: clamp(30px, 5vw, 44px); color: var(--brass); }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Co-op lokalny ---------- */
+:root { --p0: #6fc3ff; --p1: #ffb347; }
+.players { display: flex; gap: 12px; align-items: flex-end; }
+.players.duo .figure { min-width: 84px; padding: 6px 8px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; }
+.players.duo .figure.active { border-color: var(--p0); background: rgba(255, 255, 255, .06); }
+.players.duo .figure.active:nth-child(2) { border-color: var(--p1); }
+.players.duo .figure .portrait { font-size: clamp(44px, 7vw, 72px); }
+.pnum { font-weight: 800; font-size: .8em; padding: 1px 8px; border-radius: 10px; color: #111; background: var(--p0); }
+.pnum.p1 { background: var(--p1); }
+.ready { font-weight: 800; color: #7ddc7d; font-size: .85em; }
+.tgt { font-size: .8em; font-weight: 800; padding: 0 6px; border-radius: 8px; color: #111; background: var(--p0); }
+.tgt.p1 { background: var(--p1); }
+.pbadge { font: inherit; font-weight: 700; color: inherit; background: rgba(255, 255, 255, .06); border: 2px solid var(--p0); border-radius: 14px; padding: 2px 10px; white-space: nowrap; }
+.pbadge.p1 { border-color: var(--p1); }
+button.pbadge { cursor: pointer; }
+.pbadge.active { background: rgba(255, 255, 255, .22); }
+.pbadge.dead { opacity: .4; text-decoration: line-through; }
+.who { font-weight: 800; padding: 2px 10px; border-radius: 12px; color: #111; background: var(--p0); }
+.who.p1 { background: var(--p1); }
+.rewardsec { margin: 10px 0; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--p0); }
+.rewardsec.p1 { border-color: var(--p1); }
+.rewardsec.solo { border: 0; padding: 0; margin: 0; }
+.hand.waiting { opacity: .45; filter: grayscale(.5); }
+@media (max-width: 700px) { .players.duo { gap: 4px; } .players.duo .figure { min-width: 60px; padding: 3px; } }
