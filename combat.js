@@ -26,18 +26,23 @@ function calcDmg(base, atk, def) {
 }
 
 /* ---------- Start walki ---------- */
+/** Tworzy stan walki jednego gracza (stos, ręka, energia, statusy, kule, słudzy). */
 function mkPlayerCombat(p) {
   const has = id => p.relics.includes(id);
   return {
     draw: shuffle(p.deck.map(c => ({ ...c }))), hand: [], discard: [], exhaust: [],
     energy: 0, maxEnergy: 3 + (has('lampa') ? 1 : 0), block: 0,
-    st: { str: (has('zab') ? 1 : 0) + (has('rum') ? 2 : 0), weak: 0, vuln: 0, ritual: 0, plating: 0, thorns: has('beczka') ? 2 : 0, focus: 0, loop: 0, necro: 0 },
+    st: { str: (has('zab') ? 1 : 0) + (has('rum') ? 2 : 0), weak: 0, vuln: 0, ritual: 0, plating: 0, regen: 0, thorns: has('beczka') ? 2 : 0, focus: 0, loop: 0, necro: 0 },
     orbs: [], slots: 3, nextEnergy: 0,
     minions: [], minionSlots: 4, spawn: [],
     ready: false
   };
 }
 
+/**
+ * Tworzy stan walki, stos dobierania i efekty reliktów, po czym rozpoczyna turę.
+ * @param {string} kind - Rodzaj starcia: boss, elite lub zwykła walka.
+ */
 function startCombat(kind) {
   let ids;
   if (kind === 'boss') ids = ['serce'];
@@ -57,6 +62,10 @@ function startCombat(kind) {
   startTurn();
 }
 
+/**
+ * Rozpoczyna turę gracza: odnawia pancerz i energię, stosuje rytuał i regenerację,
+ * dobiera karty z premiami reliktów oraz odświeża widok walki.
+ */
 function startTurn() {
   C.turn++;
   C.phase = 'player';
@@ -71,6 +80,7 @@ function startPlayerTurn() {
   C.ready = false;
   C.block = (C.turn === 1 && hasRelic('kotwica')) ? 10 : 0;
   C.st.str += C.st.ritual;
+  if (C.st.regen) { heal(C.st.regen); floatAt(playerEl(), `+${C.st.regen}`, 'heal'); }
   C.energy = C.maxEnergy + C.nextEnergy + (hasRelic('zegar') && C.turn % 3 === 0 ? 1 : 0);
   C.nextEnergy = 0;
   C.spawn.forEach(id => summonMinion(id));
@@ -105,15 +115,26 @@ function dealDamage(t, d) {
   if (t.hp <= 0) { t.hp = 0; t.dead = true; }
 }
 
+/**
+ * Stosuje efekty karty do gracza i celu lub wszystkich żywych wrogów.
+ * Obrażenia poprzedzają osłabienia; funkcja nie pobiera kosztu energii.
+ * @param {Object} d - Definicja karty z uwzględnieniem ulepszenia.
+ * @param {Object} [target] - Wróg wybrany dla karty wymagającej celu.
+ */
 function resolveCard(d, target) {
   const targets = d.aoe ? aliveEnemies() : (target ? [target] : []);
   if (d.selfdmg) { G.hp -= d.selfdmg; floatAt(playerEl(), `-${d.selfdmg}`, 'dmg'); }
   if (d.energy) C.energy += d.energy;
   if (d.block) { C.block += d.block; floatAt(playerEl(), `+${d.block}`, 'blk'); }
-  if (d.dmg) {
+  if (d.heal) { heal(d.heal); floatAt(playerEl(), `+${d.heal}`, 'heal'); }
+  if (d.doubleBlock) { C.block *= 2; floatAt(playerEl(), `🛡️ ${C.block}`, 'blk'); }
+  if (d.dmg || d.blockDmg) {
     const n = d.perOrb ? C.orbs.length : d.perMinion ? C.minions.length : (d.hits || 1);
-    const base = d.dmg + (d.bonusIfMinion && C.minions.length ? d.bonusIfMinion : 0);
-    for (let i = 0; i < n; i++) targets.forEach(t => { if (!t.dead) hitEnemy(t, base); });
+    const base = (d.blockDmg ? C.block : d.dmg) + (d.bonusIfMinion && C.minions.length ? d.bonusIfMinion : 0) + (d.strMul ? C.st.str * (d.strMul - 1) : 0);
+    for (let i = 0; i < n; i++) targets.forEach(t => {
+      if (t.dead) return;
+      hitEnemy(t, base + (d.vulnBonus && t.st.vuln > 0 ? d.vulnBonus : 0));
+    });
   }
   targets.forEach(t => {
     if (t.dead) return;
@@ -123,6 +144,7 @@ function resolveCard(d, target) {
   if (d.str) C.st.str += d.str;
   if (d.ritual) C.st.ritual += d.ritual;
   if (d.plating) C.st.plating += d.plating;
+  if (d.regen) C.st.regen += d.regen;
   if (d.thorns) C.st.thorns += d.thorns;
   if (d.focus) C.st.focus += d.focus;
   if (d.slots) C.slots += d.slots;
@@ -488,6 +510,11 @@ function hpBar(hp, max) {
   const pct = Math.max(0, Math.min(100, hp / max * 100));
   return `<div class="hpbar"><div class="fill" style="width:${pct}%"></div><span>${hp}/${max}</span></div>`;
 }
+/**
+ * Buduje znaczniki HTML dla niezerowych statusów, w tym regeneracji.
+ * @param {Object} st - Wartości statusów gracza lub wroga.
+ * @returns {string} Znaczniki statusów z ikonami, wartościami i podpowiedziami.
+ */
 function chips(st) {
   const out = [];
   const add = (v, icon, name) => { if (v) out.push(`<span class="chip" title="${name}">${icon} ${v}</span>`); };
@@ -497,6 +524,7 @@ function chips(st) {
   add(st.ritual, '🕯️', 'Rytuał: Siła na początku tury');
   add(st.plating, '🧂', 'Zbroja: pancerz na koniec tury');
   add(st.thorns, '🪸', 'Kolce: atakujący otrzymują obrażenia');
+  add(st.regen, '🌅', 'Odnowa: leczenie na początku tury');
   add(st.focus, '🎯', 'Skupienie: wzmacnia kule Błysk, Szron i Mrok');
   add(st.loop, '♾️', 'Pętla: pierwsza kula działa dodatkowo na koniec tury');
   add(st.necro, '🩻', 'Moc nieumarłych: słudzy zadają i dają więcej');

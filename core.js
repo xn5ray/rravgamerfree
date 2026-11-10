@@ -79,13 +79,23 @@ function plural(n, one, few, many) {
   return n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? few : many;
 }
 
+/**
+ * Buduje polski opis HTML efektów karty na podstawie jej definicji.
+ * @param {Object} d - Definicja karty z uwzględnieniem ulepszenia.
+ * @returns {string} Opisy aktywnych efektów połączone spacjami.
+ */
 function cardText(d) {
   const p = [];
   const all = d.aoe ? ' wszystkim wrogom' : '';
   if (d.selfdmg) p.push(`Strać <b>${d.selfdmg}</b> HP.`);
   if (d.energy) p.push(`Zyskaj <b>${d.energy}</b> energii.`);
   if (d.block) p.push(`Zyskaj <b>${d.block}</b> pancerza.`);
+  if (d.heal) p.push(`Lecz <b>${d.heal}</b> HP.`);
+  if (d.doubleBlock) p.push('Podwój pancerz.');
+  if (d.blockDmg) p.push('Zadaj obrażenia równe pancerzowi.');
   if (d.dmg) p.push(d.perOrb ? `Zadaj <b>${d.dmg}</b> obrażeń za każdą kulę.` : d.perMinion ? `Zadaj <b>${d.dmg}</b> obrażeń za każdego sługę.` :`Zadaj <b>${d.dmg}</b> obrażeń${d.hits > 1 ? ` <b>${d.hits}</b>×` : ''}${all}.`);
+  if (d.strMul) p.push(`Siła liczy się <b>${d.strMul}</b>×.`);
+  if (d.vulnBonus) p.push(`<b>+${d.vulnBonus}</b>, jeśli wróg ma Podatność.`);
   if (d.vuln) p.push(`Nałóż <b>${d.vuln}</b> Podatności${all}.`);
   if (d.weak) p.push(`Nałóż <b>${d.weak}</b> Osłabienia${all}.`);
   if (d.str) p.push(`Zyskaj <b>${d.str}</b> Siły.`);
@@ -93,6 +103,7 @@ function cardText(d) {
   if (d.ritual) p.push(`Na początku tury zyskaj <b>${d.ritual}</b> Siły.`);
   if (d.plating) p.push(`Na koniec tury zyskaj <b>${d.plating}</b> pancerza.`);
   if (d.thorns) p.push(`Zyskaj <b>${d.thorns}</b> Kolców.`);
+  if (d.regen) p.push(`Na początku tury lecz <b>${d.regen}</b> HP.`);
   if (d.focus) p.push(`Zyskaj <b>${d.focus}</b> Skupienia.`);
   if (d.slots) p.push(`Zyskaj <b>${d.slots}</b> ${plural(d.slots, 'miejsce', 'miejsca', 'miejsc')} na kule.`);
   if (d.loop) p.push(`Na koniec tury pierwsza kula działa dodatkowo <b>${d.loop}</b>×.`);
@@ -122,12 +133,21 @@ function cardEl(inst) {
   return e;
 }
 
+/**
+ * Sprawdza, czy obrażenia lub osłabienia karty wymagają wskazania jednego wroga.
+ * @param {Object} d - Definicja karty; efekty obszarowe nie wymagają celu.
+ * @returns {boolean} Czy gracz musi wybrać cel.
+ */
 function needsTarget(d) {
-  return !d.aoe && (d.dmg || d.vuln || d.weak) ? true : false;
+  return !d.aoe && (d.dmg || d.blockDmg || d.vuln || d.weak) ? true : false;
 }
 
-/* Karty dostępne dla aktualnej postaci w danej rzadkości. Karty klasowe (pole `char`)
-   widzi tylko ich postać i trafiają się 3 razy częściej niż neutralne. */
+/**
+ * Zwraca karty danej rzadkości dostępne dla aktualnej postaci (wspólne + jej własne).
+ * Karty klasowe (pole `char`) trafiają się 3 razy częściej niż neutralne.
+ * @param {string} rarity - Wymagana rzadkość karty.
+ * @returns {string[]} Identyfikatory pasujących kart (z powtórzeniami jako wagami).
+ */
 function cardPool(rarity) {
   const out = [];
   Object.keys(CARDS).forEach(id => {
@@ -138,6 +158,11 @@ function cardPool(rarity) {
   return out;
 }
 
+/**
+ * Losuje kartę dostępną dla aktualnej postaci: 60% common, 30% uncommon, 10% rare.
+ * @param {number} [rarityRoll] - Wynik losowania w przedziale [0, 1); domyślnie losowy.
+ * @returns {string} Identyfikator wylosowanej karty.
+ */
 function randomCard(rarityRoll) {
   const r = rarityRoll ?? Math.random();
   const rarity = r < 0.6 ? 'common' : r < 0.9 ? 'uncommon' : 'rare';
