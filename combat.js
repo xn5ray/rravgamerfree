@@ -53,6 +53,7 @@ function startCombat(kind) {
     turn: 0, selected: null, phase: 'player', busy: false, over: false
   };
   delegate(C, COMBAT_KEYS, 'ps');
+  G.screen = 'combat';
   G.players.forEach((p, i) => withPlayer(i, () => {
     if (hasRelic('rum')) loseHpSafe(3);
     if (hasRelic('dzwon')) C.enemies.forEach(e => { e.st.weak += 1; e.st.vuln += 1; });
@@ -72,7 +73,7 @@ function startTurn() {
   C.selected = null;
   G.players.forEach((p, i) => { if (p.hp > 0) withPlayer(i, startPlayerTurn); });
   const first = alivePlayers()[0];
-  setActive(first === undefined ? 0 : first);
+  setActive(NET ? NET.me : first === undefined ? 0 : first);
   renderCombat();
 }
 
@@ -316,15 +317,15 @@ function onCardClick(i) {
   if (why) { toast(why); return; }
   if (needsTarget(d)) {
     const alive = aliveEnemies();
-    if (alive.length === 1) playCard(i, alive[0]);
+    if (alive.length === 1) act('play', i, C.enemies.indexOf(alive[0]));
     else { C.selected = i; renderCombat(); }
-  } else playCard(i);
+  } else act('play', i);
 }
 
 function onEnemyClick(i) {
   const e = C.enemies[i];
   if (C.selected === null || e.dead) return;
-  playCard(C.selected, e);
+  act('play', C.selected, i);
 }
 
 /* ---------- Mikstury ---------- */
@@ -409,7 +410,7 @@ function toggleReady() {
   if (alivePlayers().every(i => C.ps[i].ready)) { renderCombat(); endTurn(); return; }
   if (C.ready) {
     const next = alivePlayers().find(i => !C.ps[i].ready);
-    if (next !== undefined) setActive(next);
+    if (next !== undefined && !NET) setActive(next);
   }
   renderCombat();
 }
@@ -459,21 +460,21 @@ function checkEnd() {
   if (G.players.every(p => p.hp <= 0)) {
     C.over = true;
     renderCombat();
-    setTimeout(() => showEnd(false), 700);
+    defer(() => showEnd(false), 700);
     return true;
   }
   if (C.enemies.every(e => e.dead)) {
     C.over = true;
     renderCombat();
-    setTimeout(winCombat, 700);
+    defer(winCombat, 700);
     return true;
   }
-  if (!isAlive(C.ap)) {
+  if (!NET && !isAlive(C.ap)) {
     const a = alivePlayers();
     setActive(a.find(i => !C.ps[i].ready) ?? a[0]);
     renderCombat();
   }
-  if (C.phase === 'player' && !C.busy && alivePlayers().every(i => C.ps[i].ready)) setTimeout(endTurn, 0);
+  if (C.phase === 'player' && !C.busy && alivePlayers().every(i => C.ps[i].ready)) defer(endTurn, 0);
   return false;
 }
 
@@ -492,7 +493,7 @@ function winCombat() {
   G.gold += gold;
   const pc = G.players.map((p, i) => withPlayer(i, () => ({
     cards: cardChoices(3, kind === 'elite'),
-    potion: Math.random() < (kind === 'elite' ? 0.6 : 0.35) + (hasRelic('mapa') ? 0.25 : 0) ? pick(Object.keys(POTIONS)) : null,
+    potion: rand() < (kind === 'elite' ? 0.6 : 0.35) + (hasRelic('mapa') ? 0.25 : 0) ? pick(Object.keys(POTIONS)) : null,
     taken: false
   })));
   let relic = null, relicFor = 0;
@@ -500,9 +501,10 @@ function winCombat() {
     relicFor = rnd(0, n - 1);
     withPlayer(relicFor, () => { relic = randomRelic(); if (relic) gainRelic(relic); });
   }
-  setActive(0);
+  setActive(NET ? NET.me : 0);
   C = null;
-  showReward({ gold, pc, relic, relicFor });
+  G.reward = { gold, pc, relic, relicFor };
+  showReward();
 }
 
 /* ---------- Rysowanie walki ---------- */
@@ -547,6 +549,10 @@ function intentHtml(e) {
 }
 
 function renderCombat() {
+  if (!G) return;
+  inView(drawCombat);
+}
+function drawCombat() {
   renderHud();
   const s = screen();
   s.innerHTML = '';
@@ -554,11 +560,11 @@ function renderCombat() {
   const root = h('div', 'combat');
   const arena = h('div', 'arena');
 
-  const act = C.ap;
+  const actIdx = C.ap;
   const players = h('div', 'players' + (multi ? ' duo' : ''));
   G.players.forEach((pl, i) => withPlayer(i, () => {
     const ch = CHARACTERS[G.char];
-    const p = h('div', `figure player${multi && i === act ? ' active' : ''}${pl.hp <= 0 ? ' dead' : ''}`);
+    const p = h('div', `figure player${multi && i === actIdx ? ' active' : ''}${pl.hp <= 0 ? ' dead' : ''}`);
     p.id = 'player-' + i;
     p.innerHTML = (multi ? `<div class="pnum p${i}">Gracz ${i + 1}</div>` : '') +
       `<div class="portrait">${art('characters', G.char, ch.icon)}</div><div class="name">${ch.name}</div>${hpBar(Math.max(0, G.hp), G.max)}` +
@@ -594,7 +600,7 @@ function renderCombat() {
   const end = h('button', 'btn primary', multi ? (C.ready ? 'Cofnij gotowość' : 'Gotowy') : 'Zakończ turę');
   end.id = 'endTurn';
   end.disabled = C.phase !== 'player' || C.busy || C.over || !isAlive(C.ap);
-  end.onclick = toggleReady;
+  end.onclick = () => act('ready');
   bar.append(end);
 
   const hand = h('div', 'hand' + (multi && C.ready ? ' waiting' : ''));
@@ -612,3 +618,9 @@ function renderCombat() {
   root.append(arena, bar, hand);
   s.append(root);
 }
+
+
+/* ---------- Akcje (patrz act() w core.js) ---------- */
+ACTIONS.play = (i, enemyIdx) => { if (C && !C.over) playCard(i, enemyIdx == null || enemyIdx < 0 ? undefined : C.enemies[enemyIdx]); };
+ACTIONS.potion = i => usePotion(i);
+ACTIONS.ready = () => toggleReady();

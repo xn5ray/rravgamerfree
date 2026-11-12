@@ -59,6 +59,20 @@ W menu wybierz **Co-op lokalny**, a potem postać dla każdego gracza. Gracze wa
 - Wrogowie mają więcej HP, a nagrody są większe. Po walce każdy wybiera własną kartę, w ognisku każdy po kolei odpoczywa albo ulepsza kartę, a w sklepie i wydarzeniach przełączasz, który gracz kupuje lub decyduje.
 - Skalowanie ustawisz w `data.js`, w stałej `COOP` (`hpScale` dla HP wrogów, `goldScale` dla złota).
 
+### Gra online (P2P, 2 graczy)
+
+W menu wybierz **Online (P2P, 2 graczy)**. Gra jest współpracą jak w co-opie lokalnym, ale każdy gra na swoim urządzeniu. Nie potrzeba serwera: przeglądarki łączą się wprost (WebRTC), więc działa to także na GitHub Pages.
+
+1. Jedno z was wybiera **Hostuję grę** i dostaje kod zaproszenia. Wysyła go drugiej osobie (komunikator, mail).
+2. Druga osoba wybiera **Dołączam do gry**, wkleja kod i odsyła kod odpowiedzi.
+3. Host wkleja odpowiedź i klika **Połącz**. Potem każdy wybiera swoją postać.
+
+- Każdy widzi i zagrywa tylko swoją rękę. Kolejność kart w turze jest dowolna, a wrogowie ruszają, gdy obaj klikną **Gotowy**.
+- Mapę wybiera ten, kto pierwszy kliknie węzeł. Nagrody po walce, ognisko i sklep (wspólne złoto) działają dla każdego osobno. W wydarzeniu decyduje ten, kto pierwszy wybierze.
+- Obie przeglądarki liczą całą grę same, z tym samym seedem losowania, i wymieniają tylko akcje graczy. Po każdej akcji porównują skrót stanu, a gdy się rozjadą, gra to zgłasza.
+- Do połączenia przez internet używany jest publiczny serwer STUN Google (tylko do ustalenia adresów). W bardzo restrykcyjnych sieciach (np. część sieci firmowych i mobilnych) połączenie bez serwera TURN może się nie udać.
+- Gdy ktoś się rozłączy, sesja się kończy (nie ma wznawiania).
+
 ## Zawartość
 
 - 6 postaci do wyboru (każda ma własną talię, HP i startowy relikt)
@@ -91,4 +105,5 @@ W `data.js`, w obiekcie `CHARACTERS`, dopisz wpis (nazwa, ikona, HP, złoto, opi
 | `core.js` | wspólne narzędzia i interfejs |
 | `combat.js` | silnik walki |
 | `screens.js` | menu, mapa, nagrody, ognisko, sklep, wydarzenia |
+| `net.js` | gra online P2P (połączenie, lobby, synchronizacja akcji) |
 | `main.js` | start gry |
