@@ -615,6 +615,7 @@ function drawCombat() {
     if (C.selected === i) e.classList.add('selected');
     e.style.setProperty('--r', `${(i - (C.hand.length - 1) / 2) * 1.6}deg`);
     e.onclick = () => onCardClick(i);
+    if (i < 10) e.append(h('span', 'hotkey', String((i + 1) % 10))); // skrót klawiszowy: 1-9, a 10. karta pod 0
     hand.append(e);
   });
 

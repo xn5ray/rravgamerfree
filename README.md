@@ -15,7 +15,7 @@ Otwórz `index.html` w przeglądarce. Nie trzeba niczego instalować ani budowa�
 - Po walce wybierasz 1 z 3 kart do talii. Elity dają relikty.
 - Ognisko: lecz 30% HP albo ulepsz kartę. Sklep: karty, relikty, mikstury i usuwanie kart.
 - Statusy: **Siła** (większe obrażenia), **Osłabienie** (−25% obrażeń), **Podatność** (+50% otrzymywanych obrażeń), **Kolce** (atakujący dostają obrażenia).
-- Skrót klawiszowy: `E` kończy turę (w co-op: przełącza gotowość).
+- Skróty klawiszowe: **`1`–`9` zagrywają kartę o tym numerze** (numer jest nad kartą, a dziesiąta karta to `0`), `E` kończy turę (w co-op: przełącza gotowość), `Esc` anuluje celowanie. Przy kilku wrogach po wybraniu karty klikasz cel.
 
 ### Automat i kule
 
@@ -53,7 +53,7 @@ Nekromantka walczy rękami **sług**. Karty przywołują ich na 4 miejsca obok p
 W menu wybierz **Co-op lokalny**, a potem postać dla każdego gracza. Gracze walczą razem przeciwko wrogom na jednym ekranie.
 
 - Każdy gracz ma własną postać, talię, relikty, mikstury, HP, energię i rękę. Mapa i złoto są wspólne.
-- Tura jest wspólna i gra się w niej jednocześnie: przełączasz widok na rękę wybranego gracza (klik w postać albo plakietkę gracza u góry, `Tab`, `1` / `2`) i zagrywasz jego karty w dowolnej kolejności.
+- Tura jest wspólna i gra się w niej jednocześnie: przełączasz widok na rękę wybranego gracza (klik w postać albo plakietkę gracza u góry albo `Tab`) i zagrywasz jego karty w dowolnej kolejności.
 - Gdy gracz skończy, naciska **Gotowy** (`E`). Można cofnąć gotowość. Tura wrogów zaczyna się, gdy wszyscy żywi gracze są gotowi.
 - Każdy wróg wybiera cel i pokazuje go przy zapowiedzi (`→ 1` albo `→ 2`).
 - Poległy gracz nie gra do końca walki, a po wygranej wstaje z 25% HP. Porażka następuje, gdy polegną obaj.
