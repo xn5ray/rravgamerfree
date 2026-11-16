@@ -8,10 +8,27 @@ const h = (tag, cls, html) => {
   if (html !== undefined) e.innerHTML = html;
   return e;
 };
-const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-const pick = a => a[Math.floor(Math.random() * a.length)];
+/* Cała losowość gry idzie przez rand(). W trybie online obie strony ustawiają ten sam seed
+   (seedRng), dzięki czemu liczą identyczną grę z tych samych akcji. */
+let rand = Math.random;
+function seedRng(seed) {
+  let a = seed >>> 0;
+  rand = () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rnd = (a, b) => a + Math.floor(rand() * (b - a + 1));
+const pick = a => a[Math.floor(rand() * a.length)];
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* setTimeout, o którym wie tryb online: dopóki coś czeka, nie stosuje się cudzych akcji. */
+function defer(fn, ms) {
+  if (NET) NET.pending++;
+  setTimeout(() => { if (NET) NET.pending--; fn(); }, ms);
+}
 const screen = () => $('#screen');
 
 /* ---------- Wielu graczy ----------
@@ -42,18 +59,44 @@ const pickTarget = () => { const a = alivePlayers(); return a.length ? pick(a) :
 const playerEl = () => document.getElementById('player-' + (C ? C.ap : 0));
 const playerName = i => CHARACTERS[G.players[i].char].name;
 
-/* Przełącza, którego gracza rękę i ekwipunek widać. W walce lub tam, gdzie ekran ma G.refresh. */
+/* ---------- Akcje graczy ----------
+   Każde kliknięcie zmieniające grę idzie przez act(nazwa, ...argumenty). Lokalnie wykonuje się od
+   razu dla widocznego gracza, a online jest wysyłane do hosta, numerowane i wykonywane identycznie
+   u obu graczy (patrz net.js). Same akcje rejestrują się w ACTIONS (combat.js, screens.js). */
+const ACTIONS = {};
+let NET = null;   // stan sesji online (null poza trybem online)
+const viewIndex = () => (NET ? NET.me : G.ap);
+const inView = fn => withPlayer(viewIndex(), fn);
+function act(name, ...args) {
+  if (!G) return;
+  if (NET) { NET.submit(name, args); return; }
+  runAction(G.ap, name, args);
+}
+function runAction(p, name, args) {
+  const fn = ACTIONS[name];
+  if (!fn || !G || !(p >= 0 && p < G.players.length)) return;
+  if (p === G.ap) fn(...args); else withPlayer(p, () => fn(...args));
+}
+
+const SWITCH_SCREENS = ['shop', 'event', 'rest'];
+const canSwitchView = () => !!G && !NET && isCoop() && ((C && !C.over) || SWITCH_SCREENS.includes(G.screen));
+
+/* Odświeża bieżący ekran (po przełączeniu widoku gracza). */
+function refreshView() {
+  if (C && !C.over) { renderCombat(); return; }
+  const f = { map: showMap, reward: () => showReward(), rest: showRest, shop: drawShop, event: showEvent }[G.screen];
+  if (f) f();
+}
+
+/* Przełącza, którego gracza rękę i ekwipunek widać (tylko lokalnie). */
 function switchPlayer(i) {
-  if (!G || i === G.ap || i < 0 || i >= G.players.length) return;
+  if (!canSwitchView() || i === G.ap || i < 0 || i >= G.players.length) return;
   if (C && !C.over) {
     if (!isAlive(i)) { toast('Ten gracz poległ'); return; }
-    setActive(i);
     C.selected = null;
-    renderCombat();
-  } else if (G.refresh) {
-    setActive(i);
-    G.refresh();
   }
+  setActive(i);
+  refreshView();
 }
 
 /* Zwraca <img> ze sprite'a z sprites.js albo emoji, gdy sprite'a brak lub się nie wczyta. */
@@ -164,7 +207,7 @@ function cardPool(rarity) {
  * @returns {string} Identyfikator wylosowanej karty.
  */
 function randomCard(rarityRoll) {
-  const r = rarityRoll ?? Math.random();
+  const r = rarityRoll ?? rand();
   const rarity = r < 0.6 ? 'common' : r < 0.9 ? 'uncommon' : 'rare';
   return pick(cardPool(rarity));
 }
@@ -173,7 +216,7 @@ function cardChoices(n, bonusRare) {
   const ids = new Set();
   let guard = 0;
   while (ids.size < n && guard++ < 100) {
-    ids.add(randomCard(bonusRare ? Math.random() * 0.8 + 0.2 : Math.random()));
+    ids.add(randomCard(bonusRare ? rand() * 0.8 + 0.2 : rand()));
   }
   return [...ids].map(id => ({ id, up: false }));
 }
@@ -195,15 +238,18 @@ function randomRelic() {
 
 /* ---------- Interfejs wspólny ---------- */
 function renderHud() {
+  if (!G) { $('#hud').innerHTML = ''; return; }
+  inView(drawHud);
+}
+function drawHud() {
   const hud = $('#hud');
-  if (!G) { hud.innerHTML = ''; return; }
   hud.innerHTML = '';
   const floor = G.node ? G.node.f + 1 : 0;
   if (isCoop()) {
-    const canSwitch = (C && !C.over) || !!G.refresh;
+    const canSwitch = canSwitchView();
     G.players.forEach((pl, i) => {
       const b = h(canSwitch ? 'button' : 'span', `pbadge p${i}${i === G.ap ? ' active' : ''}${pl.hp <= 0 ? ' dead' : ''}`,
-        `<b>${i + 1}</b> ${CHARACTERS[pl.char].name} ♥ ${Math.max(0, pl.hp)}/${pl.max}`);
+        `<b>${i + 1}</b> ${CHARACTERS[pl.char].name} ♥ ${Math.max(0, pl.hp)}/${pl.max}${NET && i === NET.me ? ' (Ty)' : ''}`);
       if (canSwitch) b.onclick = () => switchPlayer(i);
       hud.append(b);
     });
@@ -227,7 +273,7 @@ function renderHud() {
     const s = h('button', 'potion-slot' + (id ? ' full' : ''), id ? art('potions', id, POTIONS[id].icon) : '');
     if (id) {
       s.title = `${POTIONS[id].name}: ${POTIONS[id].desc}`;
-      s.onclick = () => usePotion(i);
+      s.onclick = () => act('potion', i);
     } else s.disabled = true;
     pots.append(s);
   }
@@ -274,6 +320,7 @@ function showDeck(cards, title, onPick) {
 
 let toastTimer;
 function toast(msg) {
+  if (NET && NET.applyP != null && NET.applyP !== NET.me) return; // komunikat o cudzej akcji
   const t = $('#toast');
   t.textContent = msg;
   t.hidden = false;
