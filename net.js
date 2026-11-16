@@ -1,66 +1,59 @@
 'use strict';
 
-/* ---------- Online P2P (WebRTC, bez serwera) ----------
-   Połączenie nawiązuje się przez wymianę dwóch kodów (kopiuj/wklej): host tworzy kod zaproszenia,
-   gość odsyła kod odpowiedzi. Dalej dane idą wprost między przeglądarkami (DataChannel).
+/* ---------- Online (Firebase Realtime Database, 2 graczy) ----------
+   Host tworzy pokój i dostaje krótki kod (np. K7M2Q), gość wpisuje ten kod. Wiadomości między
+   graczami idą przez Firebase (lista rooms/KOD/msgs), a obecność obu stron śledzi rooms/KOD/p.
 
    Obie strony liczą całą grę samodzielnie: mają ten sam seed losowania i wykonują te same akcje
    (act() w core.js) w tej samej kolejności. Host nadaje akcjom numery i rozsyła je obu stronom.
-   Po każdej akcji strony porównują skrót stanu, więc rozjazd jest od razu widoczny. */
+   Po każdej akcji strony porównują skrót stanu, więc rozjazd jest od razu widoczny.
+   Protokół (netMessage, netApply, netHash...) jest ten sam co wcześniej w wersji P2P, zmienił się
+   tylko transport: zamiast DataChannel wiadomości lecą przez bazę. */
 
-const NET_ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 let LOBBY = null;
+let FB = null;
 
-/* ----- kody połączenia ----- */
-const toB64 = bytes => { let s = ''; bytes.forEach(b => { s += String.fromCharCode(b); }); return btoa(s); };
-const fromB64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
-async function runStream(bytes, stream) {
-  const w = stream.writable.getWriter();
-  w.write(bytes);
-  w.close();
-  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
-}
-async function encodeSignal(desc) {
-  const raw = new TextEncoder().encode(JSON.stringify({ t: desc.type, s: desc.sdp }));
-  if (typeof CompressionStream === 'function') return 'L1.' + toB64(await runStream(raw, new CompressionStream('deflate-raw')));
-  return 'L0.' + toB64(raw);
-}
-async function decodeSignal(code) {
-  const c = String(code).replace(/\s+/g, '');
-  const kind = c.slice(0, 3), body = fromB64(c.slice(3));
-  let raw;
-  if (kind === 'L1.') raw = await runStream(body, new DecompressionStream('deflate-raw'));
-  else if (kind === 'L0.') raw = body;
-  else throw new Error('zły kod');
-  const o = JSON.parse(new TextDecoder().decode(raw));
-  return { type: o.t, sdp: o.s };
-}
-function waitIce(pc, ms = 4000) {
-  return new Promise(res => {
-    if (pc.iceGatheringState === 'complete') { res(); return; }
-    const done = () => { clearTimeout(t); pc.removeEventListener('icegatheringstatechange', chk); res(); };
-    const chk = () => { if (pc.iceGatheringState === 'complete') done(); };
-    const t = setTimeout(done, ms);
-    pc.addEventListener('icegatheringstatechange', chk);
-  });
+const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // bez 0/O, 1/I/L
+const roomCode = () => Array.from({ length: 5 }, () => ROOM_ALPHABET[Math.floor(Math.random() * ROOM_ALPHABET.length)]).join('');
+const cleanCode = t => String(t).toUpperCase().replace(/[^A-Z0-9]/g, '');
+const withTimeout = (p, ms = 12000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+/* ----- Firebase ----- */
+async function fbReady() {
+  if (typeof firebase === 'undefined') throw new Error('Nie załadowano Firebase SDK (sprawdź połączenie z internetem).');
+  const cfg = window.FIREBASE_CONFIG;
+  if (!cfg || !cfg.apiKey || !cfg.databaseURL || /WKLEJ/i.test(cfg.apiKey + cfg.databaseURL)) {
+    throw new Error('Uzupełnij firebase-config.js (patrz README).');
+  }
+  if (!FB) {
+    firebase.initializeApp(cfg);
+    FB = { db: firebase.database(), auth: firebase.auth() };
+  }
+  if (!FB.auth.currentUser) await withTimeout(FB.auth.signInAnonymously());
+  return FB;
 }
 
 /* ----- sesja ----- */
 function netClose() {
   if (NET) clearInterval(NET.timer);
-  if (LOBBY) {
-    const { pc, dc } = LOBBY;
-    if (dc) { dc.onclose = dc.onmessage = dc.onopen = null; try { dc.close(); } catch (e) { /* już zamknięte */ } }
-    if (pc) { pc.onconnectionstatechange = pc.ondatachannel = null; try { pc.close(); } catch (e) { /* już zamknięte */ } }
-  }
+  const L = LOBBY;
   NET = null;
   LOBBY = null;
   rand = Math.random;
+  if (!L || !L.room) return;
+  try {
+    if (L.msgs) L.msgs.off();
+    if (L.pres) L.pres.off();
+    L.room.onDisconnect().cancel();
+    L.room.child('p/' + L.me).onDisconnect().cancel();
+    if (L.host) L.room.remove();            // host sprząta pokój
+    else L.room.child('p/1').set(false);    // gość tylko zgłasza wyjście
+  } catch (e) { /* sieć już padła, serwer posprząta przez onDisconnect */ }
 }
 
 function netSend(msg) {
-  const dc = LOBBY && LOBBY.dc;
-  if (dc && dc.readyState === 'open') dc.send(JSON.stringify(msg));
+  if (!LOBBY || !LOBBY.msgs || LOBBY.lost) return;
+  LOBBY.msgs.push({ from: LOBBY.me, m: JSON.stringify(msg) }).catch(e => { console.error(e); netLost(); });
 }
 
 function netLost() {
@@ -75,19 +68,25 @@ function netLost() {
   openModal('Rozłączono', box, false);
 }
 
-function wireChannel(dc) {
-  LOBBY.dc = dc;
-  dc.onopen = () => lobbyConnected();
-  dc.onclose = () => netLost();
-  dc.onmessage = e => { try { netMessage(JSON.parse(e.data)); } catch (err) { console.error(err); } };
-}
-
-function newPeer(host) {
-  netClose();
-  const pc = new RTCPeerConnection(NET_ICE);
-  LOBBY = { host, pc, dc: null, mine: null, theirs: null, started: false, lost: false };
-  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') netLost(); };
-  return pc;
+/* Podpina nasłuch wiadomości i obecności drugiej strony. */
+function wireRoom(L) {
+  L.msgs = L.room.child('msgs');
+  // child_added odtwarza też wiadomości wysłane przed podpięciem, więc nic nie ginie
+  L.msgs.on('child_added', snap => {
+    const v = snap.val();
+    if (LOBBY !== L || !v || v.from === L.me) return;
+    try { netMessage(JSON.parse(v.m)); } catch (err) { console.error(err); }
+  });
+  L.pres = L.room.child('p/' + (1 - L.me));
+  L.pres.on('value', snap => {
+    if (LOBBY !== L) return;
+    if (snap.val() === true) { L.seen = true; if (L.host) lobbyConnected(); }
+    else if (L.seen) netLost();
+  });
+  // własna obecność; po zerwaniu połączenia serwer sam ją zdejmie
+  const mine = L.room.child('p/' + L.me);
+  mine.onDisconnect().set(false);
+  if (L.host) L.room.onDisconnect().remove();
 }
 
 /* ----- ekrany lobby ----- */
@@ -106,33 +105,19 @@ function lobbyScreen(title, build) {
   s.append(box);
 }
 
-function codeArea(id, readOnly, value = '') {
-  const t = h('textarea', 'codebox');
-  t.id = id;
-  t.readOnly = readOnly;
-  t.value = value;
-  t.spellcheck = false;
-  if (readOnly) t.onclick = () => t.select();
-  return t;
-}
-function copyBtn(area) {
-  const b = h('button', 'btn small', 'Kopiuj kod');
-  b.onclick = async () => {
-    try { await navigator.clipboard.writeText(area.value); toast('Skopiowano'); } catch (e) { area.select(); toast('Zaznaczono kod, skopiuj go ręcznie (Ctrl+C)'); }
-  };
-  return b;
-}
+const lobbyError = (title, msg) => lobbyScreen(title, b => b.append(h('p', 'lead', msg)));
+const errText = e => (e && e.message && !/^(timeout|Firebase)/i.test(e.message) ? e.message : 'Nie udało się połączyć z Firebase. Sprawdź internet i konfigurację.');
 
 function showLobby() {
   netClose();
   G = null; C = null;
-  lobbyScreen('Gra online (P2P)', box => {
-    box.append(h('p', 'lead', 'Dwóch graczy, każdy na swoim urządzeniu. Łączycie się bez serwera, wymieniając dwa kody (np. przez komunikator). Jedno z was jest hostem, drugie dołącza.'));
+  lobbyScreen('Gra online (2 graczy)', box => {
+    box.append(h('p', 'lead', 'Dwóch graczy, każdy na swoim urządzeniu. Jedno z was zakłada pokój i dostaje krótki kod, drugie wpisuje ten kod i dołącza.'));
     const row = h('div', 'choices');
-    const hb = h('button', 'btn primary', 'Hostuję grę');
+    const hb = h('button', 'btn primary', 'Zakładam pokój');
     hb.id = 'hostBtn';
     hb.onclick = hostScreen;
-    const jb = h('button', 'btn', 'Dołączam do gry');
+    const jb = h('button', 'btn', 'Dołączam do pokoju');
     jb.id = 'joinBtn';
     jb.onclick = joinScreen;
     row.append(hb, jb);
@@ -141,61 +126,77 @@ function showLobby() {
 }
 
 async function hostScreen() {
-  lobbyScreen('Host: zaproszenie', box => box.append(h('p', 'lead', 'Tworzę zaproszenie…')));
-  let pc;
+  lobbyScreen('Zakładam pokój', box => box.append(h('p', 'lead', 'Tworzę pokój…')));
+  let code = null, L = null;
   try {
-    pc = newPeer(true);
-    wireChannel(pc.createDataChannel('game'));
-    await pc.setLocalDescription(await pc.createOffer());
-    await waitIce(pc);
-  } catch (e) { lobbyScreen('Błąd', b => b.append(h('p', 'lead', 'Ta przeglądarka nie obsługuje połączeń P2P (WebRTC).'))); return; }
-  const code = await encodeSignal(pc.localDescription);
-  lobbyScreen('Host: zaproszenie', box => {
-    box.append(h('p', 'lead', '1. Wyślij ten kod znajomemu. 2. Wklej poniżej kod odpowiedzi, który ci odeśle.'));
-    const mine = codeArea('hostCode', true, code);
-    box.append(mine, copyBtn(mine));
-    const reply = codeArea('hostReply', false);
-    reply.placeholder = 'Tu wklej kod odpowiedzi';
-    const go = h('button', 'btn primary', 'Połącz');
-    go.id = 'hostConnect';
-    go.onclick = async () => {
-      try { await pc.setRemoteDescription(await decodeSignal(reply.value)); go.disabled = true; go.textContent = 'Łączenie…'; }
-      catch (e) { toast('Nieprawidłowy kod odpowiedzi'); }
+    const fb = await fbReady();
+    for (let i = 0; i < 6 && !code; i++) {
+      const c = roomCode();
+      const res = await withTimeout(fb.db.ref('rooms/' + c + '/p/0').transaction(cur => (cur === null ? true : undefined)));
+      if (res.committed) code = c;
+    }
+    if (!code) throw new Error('Nie udało się utworzyć pokoju, spróbuj ponownie.');
+    netClose();
+    L = LOBBY = { host: true, me: 0, code, room: fb.db.ref('rooms/' + code), msgs: null, pres: null, mine: null, theirs: null, started: false, connected: false, lost: false, seen: false };
+    wireRoom(L);
+  } catch (e) { lobbyError('Błąd', errText(e)); return; }
+  lobbyScreen('Pokój utworzony', box => {
+    box.append(h('p', 'lead', 'Podaj ten kod znajomemu. Gra ruszy, gdy dołączy.'));
+    const big = h('div', 'emoji-big', code);
+    big.id = 'roomCode';
+    big.style.letterSpacing = '.2em';
+    box.append(big);
+    const cp = h('button', 'btn small', 'Kopiuj kod');
+    cp.onclick = async () => {
+      try { await navigator.clipboard.writeText(code); toast('Skopiowano'); } catch (e) { toast('Przepisz kod ręcznie: ' + code); }
     };
-    box.append(reply, go);
+    box.append(cp, h('p', 'lead', 'Czekam na drugiego gracza…'));
   });
 }
 
 function joinScreen() {
-  lobbyScreen('Dołączanie do gry', box => {
-    box.append(h('p', 'lead', 'Wklej kod zaproszenia od hosta.'));
-    const inp = codeArea('joinCode', false);
-    inp.placeholder = 'Tu wklej kod zaproszenia';
-    const go = h('button', 'btn primary', 'Dalej');
+  lobbyScreen('Dołączanie do pokoju', box => {
+    box.append(h('p', 'lead', 'Wpisz kod pokoju od hosta.'));
+    const inp = h('input', 'codebox');
+    inp.id = 'joinCode';
+    inp.maxLength = 8;
+    inp.placeholder = 'KOD';
+    inp.autocomplete = 'off';
+    inp.spellcheck = false;
+    inp.style.cssText = 'height:auto;text-align:center;text-transform:uppercase;font:700 28px/1.4 monospace;letter-spacing:.2em;width:min(70vw,260px)';
+    const go = h('button', 'btn primary', 'Dołącz');
     go.id = 'joinNext';
-    go.onclick = async () => {
+    const run = async () => {
+      const code = cleanCode(inp.value);
+      if (code.length < 4) { toast('Wpisz kod pokoju'); return; }
       go.disabled = true;
+      go.textContent = 'Łączenie…';
       try {
-        const offer = await decodeSignal(inp.value);
-        const pc = newPeer(false);
-        pc.ondatachannel = e => wireChannel(e.channel);
-        await pc.setRemoteDescription(offer);
-        await pc.setLocalDescription(await pc.createAnswer());
-        await waitIce(pc);
-        const code = await encodeSignal(pc.localDescription);
-        lobbyScreen('Dołączanie do gry', b => {
-          b.append(h('p', 'lead', 'Odeślij ten kod hostowi i poczekaj na połączenie.'));
-          const mine = codeArea('joinReply', true, code);
-          b.append(mine, copyBtn(mine), h('p', 'lead', 'Czekam na połączenie…'));
-        });
-      } catch (e) { go.disabled = false; toast('Nieprawidłowy kod zaproszenia'); }
+        const fb = await fbReady();
+        const room = fb.db.ref('rooms/' + code);
+        const host = await withTimeout(room.child('p/0').once('value'));
+        if (host.val() !== true) throw new Error('Nie ma takiego pokoju.');
+        const res = await withTimeout(room.child('p/1').transaction(cur => (cur === null ? true : undefined)));
+        if (!res.committed) throw new Error('Ten pokój jest już zajęty.');
+        netClose();
+        const L = LOBBY = { host: false, me: 1, code, room, msgs: null, pres: null, mine: null, theirs: null, started: false, connected: false, lost: false, seen: true };
+        wireRoom(L);
+        lobbyConnected();
+      } catch (e) {
+        go.disabled = false;
+        go.textContent = 'Dołącz';
+        toast(errText(e));
+      }
     };
+    go.onclick = run;
+    inp.onkeydown = e => { if (e.key === 'Enter') run(); };
     box.append(inp, go);
   });
 }
 
 function lobbyConnected() {
-  if (!LOBBY || LOBBY.started) return;
+  if (!LOBBY || LOBBY.started || LOBBY.connected) return;
+  LOBBY.connected = true;
   showCharSelect(1, [], id => {
     LOBBY.mine = id;
     netSend({ t: 'pick', char: id });

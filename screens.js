@@ -19,7 +19,7 @@ function showMenu() {
   const b2 = h('button', 'btn', 'Co-op lokalny (2 graczy)');
   b2.id = 'newGameCoop';
   b2.onclick = () => showCharSelect(2);
-  const b3 = h('button', 'btn', 'Online (P2P, 2 graczy)');
+  const b3 = h('button', 'btn', 'Online (2 graczy)');
   b3.id = 'newGameOnline';
   b3.onclick = () => showLobby();
   const bs = h('div', 'choices');

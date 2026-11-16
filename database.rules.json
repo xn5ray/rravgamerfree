@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "p": {
+          "$slot": {
+            ".validate": "($slot === '0' || $slot === '1') && newData.isBoolean()"
+          }
+        },
+        "msgs": {
+          "$id": {
+            ".validate": "newData.hasChildren(['from', 'm']) && (newData.child('from').val() === 0 || newData.child('from').val() === 1) && newData.child('m').isString() && newData.child('m').val().length < 4000"
+          }
+        },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

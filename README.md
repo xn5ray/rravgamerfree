@@ -60,19 +60,27 @@ W menu wybierz **Co-op lokalny**, a potem postać dla każdego gracza. Gracze wa
 - Wrogowie mają więcej HP, a nagrody są większe. Po walce każdy wybiera własną kartę, w ognisku każdy po kolei odpoczywa albo ulepsza kartę, a w sklepie i wydarzeniach przełączasz, który gracz kupuje lub decyduje.
 - Skalowanie ustawisz w `data.js`, w stałej `COOP` (`hpScale` dla HP wrogów, `goldScale` dla złota).
 
-### Gra online (P2P, 2 graczy)
+### Gra online (Firebase, 2 graczy)
 
-W menu wybierz **Online (P2P, 2 graczy)**. Gra jest współpracą jak w co-opie lokalnym, ale każdy gra na swoim urządzeniu. Nie potrzeba serwera: przeglądarki łączą się wprost (WebRTC), więc działa to także na GitHub Pages.
+W menu wybierz **Online (2 graczy)**. Gra jest współpracą jak w co-opie lokalnym, ale każdy gra na swoim urządzeniu. Wiadomości między graczami idą przez Firebase Realtime Database, więc działa to także na GitHub Pages i nie trzeba wymieniać długich kodów.
 
-1. Jedno z was wybiera **Hostuję grę** i dostaje kod zaproszenia. Wysyła go drugiej osobie (komunikator, mail).
-2. Druga osoba wybiera **Dołączam do gry**, wkleja kod i odsyła kod odpowiedzi.
-3. Host wkleja odpowiedź i klika **Połącz**. Potem każdy wybiera swoją postać.
+1. Jedno z was wybiera **Zakładam pokój** i dostaje krótki kod (np. `K7M2Q`). Wysyła go drugiej osobie.
+2. Druga osoba wybiera **Dołączam do pokoju** i wpisuje kod.
+3. Potem każdy wybiera swoją postać.
+
+**Konfiguracja Firebase (jednorazowo):**
+
+1. W [Firebase Console](https://console.firebase.google.com) utwórz projekt (plan Spark, darmowy).
+2. **Build → Authentication → Sign-in method**: włącz **Anonymous**.
+3. **Build → Realtime Database → Create database** (dowolny region), a w zakładce **Rules** wklej zawartość `database.rules.json` i opublikuj.
+4. **Ustawienia projektu → Twoje aplikacje → Web (`</>`)**: zarejestruj aplikację i skopiuj konfigurację do `firebase-config.js`.
+5. Jeśli hostujesz grę na własnej domenie lub GitHub Pages: **Authentication → Settings → Authorized domains** i dodaj ją (localhost jest domyślnie).
 
 - Każdy widzi i zagrywa tylko swoją rękę. Kolejność kart w turze jest dowolna, a wrogowie ruszają, gdy obaj klikną **Gotowy**.
 - Mapę wybiera ten, kto pierwszy kliknie węzeł. Nagrody po walce, ognisko i sklep (wspólne złoto) działają dla każdego osobno. W wydarzeniu decyduje ten, kto pierwszy wybierze.
 - Obie przeglądarki liczą całą grę same, z tym samym seedem losowania, i wymieniają tylko akcje graczy. Po każdej akcji porównują skrót stanu, a gdy się rozjadą, gra to zgłasza.
-- Do połączenia przez internet używany jest publiczny serwer STUN Google (tylko do ustalenia adresów). W bardzo restrykcyjnych sieciach (np. część sieci firmowych i mobilnych) połączenie bez serwera TURN może się nie udać.
-- Gdy ktoś się rozłączy, sesja się kończy (nie ma wznawiania).
+- Host sprząta pokój po wyjściu, a serwer usuwa go sam, gdy host straci połączenie. Gdy ktoś się rozłączy, sesja się kończy (nie ma wznawiania).
+- Darmowy plan Spark w zupełności wystarcza dla kilku par graczy naraz. Wiadomości są małe i znikają razem z pokojem.
 
 ## Zawartość
 
@@ -116,5 +124,7 @@ W `data.js`, w obiekcie `CHARACTERS`, dopisz wpis (nazwa, ikona, HP, złoto, opi
 | `combat.js` | silnik walki |
 | `events.js` | wydarzenia losowe (tu dopisujesz nowe) |
 | `screens.js` | menu, mapa, nagrody, ognisko, sklep, ekrany wydarzeń |
-| `net.js` | gra online P2P (połączenie, lobby, synchronizacja akcji) |
+| `net.js` | gra online przez Firebase (pokoje, lobby, synchronizacja akcji) |
+| `firebase-config.js` | twoja konfiguracja Firebase |
+| `database.rules.json` | reguły bazy do wklejenia w konsoli Firebase |
 | `main.js` | start gry |
