@@ -310,6 +310,7 @@ function playCard(i, target) {
 }
 
 function onCardClick(i) {
+  KEYSEL.card = null; KEYSEL.target = null;
   if (C.phase !== 'player' || C.busy || C.over) return;
   if (C.ready) { toast('Jesteś gotowy. Cofnij gotowość, aby zagrać'); return; }
   const d = cardDef(C.hand[i]);
@@ -325,6 +326,7 @@ function onCardClick(i) {
 }
 
 function onEnemyClick(i) {
+  KEYSEL.card = null; KEYSEL.target = null;
   const e = C.enemies[i];
   if (C.selected === null || e.dead) return;
   act('play', C.selected, i);
@@ -580,9 +582,9 @@ function drawCombat() {
   const enemies = h('div', 'enemies');
   C.enemies.forEach((e, i) => {
     const t = C.selected !== null && !e.dead;
-    const f = h('div', `figure enemy${e.dead ? ' dead' : ''}${t ? ' targetable' : ''}`);
+    const f = h('div', `figure enemy${e.dead ? ' dead' : ''}${t ? ' targetable' : ''}${t && KEYSEL.target === i ? ' keysel' : ''}`);
     f.id = 'en-' + i;
-    f.innerHTML = `<div class="intent">${e.dead ? '&nbsp;' : intentHtml(e)}</div><div class="portrait">${art('enemies', e.id, e.icon)}</div>` +
+    f.innerHTML = (t && i < 9 ? `<div class="enkey">${i + 1}</div>` : '') + `<div class="intent">${e.dead ? '&nbsp;' : intentHtml(e)}</div><div class="portrait">${art('enemies', e.id, e.icon)}</div>` +
       `<div class="name">${e.name}</div>${hpBar(e.hp, e.max)}<div class="blk">${e.block > 0 ? '🛡️ ' + e.block : '&nbsp;'}</div>` +
       `<div class="chips">${chips(e.st)}</div>`;
     f.onclick = () => onEnemyClick(i);
@@ -613,8 +615,10 @@ function drawCombat() {
     e.classList.add('clickable');
     if (d.cost > C.energy || cantPlay(d)) e.classList.add('unplayable');
     if (C.selected === i) e.classList.add('selected');
+    if (KEYSEL.card === i) e.classList.add('keysel');
     e.style.setProperty('--r', `${(i - (C.hand.length - 1) / 2) * 1.6}deg`);
     e.onclick = () => onCardClick(i);
+    if (i < 10) e.append(h('span', 'hotkey', String((i + 1) % 10))); // skrót klawiszowy: 1-9, a 10. karta pod 0
     hand.append(e);
   });
 

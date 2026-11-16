@@ -67,8 +67,11 @@ const ACTIONS = {};
 let NET = null;   // stan sesji online (null poza trybem online)
 const viewIndex = () => (NET ? NET.me : G.ap);
 const inView = fn => withPlayer(viewIndex(), fn);
+/* Wybór klawiaturą w walce: najpierw numer karty i Enter, potem (przy kilku wrogach) numer wroga i Enter. */
+const KEYSEL = { card: null, target: null };
 function act(name, ...args) {
   if (!G) return;
+  if (name === 'play' || name === 'ready' || name === 'potion') { KEYSEL.card = null; KEYSEL.target = null; }
   if (NET) { NET.submit(name, args); return; }
   runAction(G.ap, name, args);
 }
