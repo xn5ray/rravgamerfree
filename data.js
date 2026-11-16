@@ -206,7 +206,21 @@ const ENEMIES = {
   wegorz:    { name: 'Węgorz elektryczny',icon: '⚡', hp: [26, 30], moves: [{ dmg: 5, weak: 1 }, { dmg: 11 }, { str: 1 }] },
   kraken:    { name: 'Kraken',            icon: '🦑', hp: [84, 90], fixed: true, moves: [{ dmg: 5, hits: 3 }, { weak: 2, vuln: 2, block: 8 }, { dmg: 16 }] },
   wieloryb:  { name: 'Biały Wieloryb',    icon: '🐋', hp: [92, 100], fixed: true, moves: [{ block: 12 }, { dmg: 16 }, { dmg: 8, vuln: 1 }, { str: 2, heal: 6 }, { dmg: 20 }] },
-  serce:     { name: 'Serce Głębiny',     icon: '🫀', hp: [150, 150], fixed: true, moves: [{ dmg: 12 }, { str: 3, block: 12 }, { dmg: 5, hits: 4 }, { dmg: 8, weak: 2, vuln: 2 }] }
+  serce:     { name: 'Serce Głębiny',     icon: '🫀', hp: [150, 150], fixed: true, moves: [{ dmg: 12 }, { str: 3, block: 12 }, { dmg: 5, hits: 4 }, { dmg: 8, weak: 2, vuln: 2 }] },
+
+  /* --- Akt 2: Zatopiona katedra --- */
+  nurek:     { name: 'Nurek widmo',       icon: '🤿', hp: [34, 40], moves: [{ dmg: 9 }, { block: 10 }, { dmg: 6, hits: 2 }] },
+  rozdymka:  { name: 'Rozdymka',          icon: '🐡', hp: [24, 28], moves: [{ dmg: 4, hits: 3 }, { str: 2 }, { dmg: 9 }] },
+  koral:     { name: 'Żywy koral',        icon: '🪸', hp: [42, 48], moves: [{ block: 12 }, { dmg: 8, weak: 1 }, { dmg: 12 }] },
+  muszla:    { name: 'Muszla pułapka',    icon: '🐚', hp: [30, 34], moves: [{ block: 8, dmg: 6 }, { vuln: 2 }, { dmg: 14 }] },
+  latarnica: { name: 'Ryba latarnica',    icon: '🐠', hp: [32, 36], moves: [{ weak: 2, vuln: 1 }, { dmg: 10 }, { dmg: 7, hits: 2 }] },
+  tryton:    { name: 'Tryton',            icon: '🔱', hp: [46, 52], moves: [{ dmg: 11 }, { str: 2, block: 6 }, { dmg: 7, hits: 2 }, { dmg: 15 }] },
+  zjawa:     { name: 'Zjawa kotwicy',     icon: '⚓', hp: [38, 44], moves: [{ dmg: 13 }, { block: 12 }, { dmg: 8, weak: 1 }] },
+  wir:       { name: 'Żywy wir',          icon: '🌀', hp: [28, 32], moves: [{ dmg: 5, hits: 2 }, { heal: 6, block: 6 }, { dmg: 9 }] },
+  admiral:   { name: 'Admirał Zatopiony', icon: '🎖️', hp: [110, 118], fixed: true, moves: [{ str: 2, block: 10 }, { dmg: 16 }, { dmg: 8, hits: 3 }, { dmg: 20, weak: 1 }] },
+  perla:     { name: 'Matka Perłowa',     icon: '🦪', hp: [100, 108], fixed: true, moves: [{ block: 16 }, { dmg: 14, vuln: 1 }, { dmg: 6, hits: 4 }, { heal: 8, str: 1 }] },
+  chor:      { name: 'Chór Syren',        icon: '🎶', hp: [96, 104], fixed: true, moves: [{ weak: 2, vuln: 2 }, { dmg: 12, hits: 2 }, { dmg: 18 }, { str: 2, block: 10 }] },
+  lewiatan:  { name: 'Pradawny Lewiatan', icon: '🐉', hp: [220, 220], fixed: true, moves: [{ dmg: 14 }, { str: 3, block: 14 }, { dmg: 6, hits: 4 }, { dmg: 10, weak: 2, vuln: 2 }, { dmg: 22 }] }
 };
 
 const ENC_EASY = [['krab'], ['meduza', 'meduza'], ['mewa', 'mewa', 'mewa'], ['meduza', 'krab'],
@@ -214,6 +228,12 @@ const ENC_EASY = [['krab'], ['meduza', 'meduza'], ['mewa', 'mewa', 'mewa'], ['me
 const ENC_HARD = [['syrena'], ['szkielet'], ['osmiornica'], ['rekin', 'meduza'], ['syrena', 'mewa'], ['krab', 'krab', 'mewa'], ['szkielet', 'meduza'],
   ['homar'], ['zolw'], ['utopiec'], ['wegorz', 'krewetka'], ['homar', 'pirania'], ['zolw', 'mewa'], ['waz', 'wegorz'], ['utopiec', 'meduza']];
 const ELITES = ['topielec', 'straznik', 'kraken', 'wieloryb'];
+
+/* Akt 2: pierwsze 4 piętra używają łatwiejszej puli, dalej trudniejszej. */
+const ENC2_EASY = [['nurek'], ['rozdymka', 'rozdymka'], ['muszla', 'rozdymka'], ['wir', 'rozdymka'], ['latarnica'], ['koral'], ['nurek', 'rozdymka']];
+const ENC2_HARD = [['tryton'], ['zjawa', 'wir'], ['nurek', 'muszla'], ['koral', 'wir'], ['latarnica', 'nurek'], ['tryton', 'rozdymka'],
+  ['koral', 'muszla'], ['zjawa', 'latarnica'], ['tryton', 'wir'], ['zjawa', 'rozdymka', 'rozdymka']];
+const ELITES2 = ['admiral', 'perla', 'chor'];
 
 /* ---------- Relikty ---------- */
 const RELICS = {

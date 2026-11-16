@@ -274,7 +274,7 @@ function netApply(it) {
 /* ----- kontrola zgodności ----- */
 function netHash() {
   const s = JSON.stringify([
-    G.gold, G.screen, G.node ? [G.node.f, G.node.j, G.node.rest, G.node.evResult] : 0,
+    G.gold, G.act, G.screen, G.node ? [G.node.f, G.node.j, G.node.rest, G.node.evResult] : 0,
     G.players.map(p => [p.char, p.hp, p.max, p.deck, p.relics, p.potions]),
     C ? [C.turn, C.phase, C.enemies.map(e => [e.hp, e.block, e.st, e.dead, e.tgt]),
       C.ps.map(q => [q.hand, q.draw.length, q.discard.length, q.energy, q.block, q.ready, q.st, q.orbs, q.minions])] : 0

@@ -8,7 +8,8 @@ Otwórz `index.html` w przeglądarce. Nie trzeba niczego instalować ani budowa�
 
 ## Zasady
 
-- Przejście ma 15 pięter. Na mapie wybierasz drogę: walka, elita, ognisko, sklep lub wydarzenie. Na szczycie czeka boss.
+- Przejście ma 2 akty po 15 pięter. Na mapie wybierasz drogę: walka, elita, ognisko, sklep lub wydarzenie. Na szczycie każdego aktu czeka boss.
+- Po bossie aktu 1 (Serce Głębiny) dostajesz większą nagrodę (karta, relikt, złoto), wracasz do 75% HP i schodzisz do **Zatopionej katedry**: nowa mapa, nowi wrogowie i elity, a na końcu Pradawny Lewiatan. Talia, relikty, mikstury i złoto zostają. Wygrana to pokonanie Lewiatana.
 - Każda tura: 3 energii i 5 kart. Zagrywasz karty, a potem kończysz turę.
 - Wrogowie pokazują, co zrobią w następnej turze (atak, pancerz, wzmocnienie, osłabienie).
 - Po walce wybierasz 1 z 3 kart do talii. Elity dają relikty.
@@ -78,7 +79,7 @@ W menu wybierz **Online (P2P, 2 graczy)**. Gra jest współpracą jak w co-opie 
 - 6 postaci do wyboru (każda ma własną talię, HP i startowy relikt)
 - 54 karty (każda z ulepszeniem): 20 neutralnych oraz po 17 klasowych Automatu i Nekromantki
 - 22 relikty, 5 mikstur
-- 15 zwykłych przeciwników, 4 elity, 1 boss
+- Akt 1: 15 zwykłych przeciwników, 4 elity, boss. Akt 2: 8 zwykłych przeciwników, 3 elity, boss
 - 4 wydarzenia losowe
 
 ## Dodawanie własnych sprite'ów
