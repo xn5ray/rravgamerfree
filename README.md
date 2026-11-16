@@ -15,7 +15,7 @@ Otwórz `index.html` w przeglądarce. Nie trzeba niczego instalować ani budowa�
 - Po walce wybierasz 1 z 3 kart do talii. Elity dają relikty.
 - Ognisko: lecz 30% HP albo ulepsz kartę. Sklep: karty, relikty, mikstury i usuwanie kart.
 - Statusy: **Siła** (większe obrażenia), **Osłabienie** (−25% obrażeń), **Podatność** (+50% otrzymywanych obrażeń), **Kolce** (atakujący dostają obrażenia).
-- Skróty klawiszowe: **`1`–`9` zagrywają kartę o tym numerze** (numer jest nad kartą, a dziesiąta karta to `0`), `E` kończy turę (w co-op: przełącza gotowość), `Esc` anuluje celowanie. Przy kilku wrogach po wybraniu karty klikasz cel.
+- Klawiatura w walce: **numer karty (`1`–`9`, a dziesiąta to `0`) i `Enter`** zagrywa kartę. Gdy jest kilku wrogów, po `Enter` wybierasz numer wroga (jest nad nim) i znów `Enter`. `Esc` cofa wybór, `E` kończy turę (w co-op: przełącza gotowość). Numery widać nad kartami.
 
 ### Automat i kule
 
