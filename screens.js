@@ -64,7 +64,7 @@ function startRun(charIds) {
     return { char: id, hp: c.hp, max: c.hp, deck: c.deck.map(d => ({ id: d, up: false })), relics: [], potions: [], pasUsed: false };
   });
   const gold = ids.reduce((a, id) => a + CHARACTERS[id].gold, 0) / ids.length;
-  G = { players, ap: NET ? NET.me : 0, screen: 'map', gold: Math.round(gold * (coop ? COOP.goldScale : 1)), node: null, map: genMap(), removals: 0, reward: null };
+  G = { players, ap: NET ? NET.me : 0, act: 1, screen: 'map', gold: Math.round(gold * (coop ? COOP.goldScale : 1)), node: null, map: genMap(), removals: 0, reward: null };
   delegate(G, PLAYER_KEYS, 'players');
   ids.forEach((id, i) => withPlayer(i, () => CHARACTERS[id].relics.forEach(gainRelic)));
   showMap();
@@ -111,6 +111,7 @@ function genMap() {
 }
 
 const NODE_ICON = { fight: '⚔️', elite: '💀', rest: '🔥', shop: '🛒', event: '❓', boss: '🫀' };
+const bossIcon = () => (G.act === 2 ? '🐉' : NODE_ICON.boss);
 const NODE_NAME = { fight: 'Walka', elite: 'Elita', rest: 'Ognisko', shop: 'Sklep', event: 'Wydarzenie', boss: 'Boss' };
 
 function showMap() {
@@ -138,7 +139,7 @@ function showMap() {
 
   G.map.forEach(row => row.forEach(n => {
     const can = avail.includes(n);
-    const b = h('button', `node ${n.type}${can ? ' avail' : ''}${n.done ? ' done' : ''}`, art('nodes', n.type, NODE_ICON[n.type]));
+    const b = h('button', `node ${n.type}${can ? ' avail' : ''}${n.done ? ' done' : ''}`, art('nodes', n.type, n.type === 'boss' ? bossIcon() : NODE_ICON[n.type]));
     b.style.left = n.x * 100 + '%';
     b.style.top = y(n.f) + 'px';
     b.title = NODE_NAME[n.type];
@@ -159,7 +160,38 @@ function enterNode(n) {
   else if (n.type === 'shop') showShop();
   else showEvent();
 }
-function leaveNode() { G.node.done = true; setActive(NET ? NET.me : 0); showMap(); }
+function leaveNode() {
+  G.node.done = true;
+  setActive(NET ? NET.me : 0);
+  if (G.node.type === 'boss' && G.act === 1) startAct2(); else showMap();
+}
+
+/* ---------- Akt 2 ---------- */
+function startAct2() {
+  G.act = 2;
+  G.players.forEach((p, i) => withPlayer(i, () => {
+    const need = Math.ceil(G.max * 0.75) - G.hp;
+    if (need > 0) heal(need);
+  }));
+  G.map = genMap();
+  G.node = null;
+  showActIntro();
+}
+function showActIntro() {
+  G.screen = 'actintro';
+  renderHud();
+  const s = screen();
+  s.innerHTML = '';
+  const box = h('div', 'center');
+  box.innerHTML = `<div class="emoji-big">🌊</div><h2>Akt 2: Zatopiona katedra</h2>` +
+    `<p class="lead">Serce Głębiny milknie, ale pod latarnią otwiera się schody w dół. Pod wodą stoi dawna katedra, a w niej coś większego od Serca.</p>` +
+    `<p class="lead">Odpoczywasz przy latarni: każdy z was wraca do 75% HP, jeśli miał mniej. Zachowujecie talie, relikty, mikstury i złoto.</p>`;
+  const b = h('button', 'btn primary', 'Dalej: zejdź głębiej');
+  b.id = 'actStart';
+  b.onclick = () => act('actStart');
+  box.append(b);
+  s.append(box);
+}
 
 /* ---------- Nagrody ---------- */
 function showReward() {
@@ -438,8 +470,8 @@ function showEnd(win) {
   const box = h('div', 'center');
   const floor = G.node ? G.node.f + 1 : 0;
   box.innerHTML = win
-    ? `<div class="emoji-big">🌅</div><h1>Światło wróciło</h1><p class="lead">Serce Głębiny przestaje bić, a latarnia znów świeci nad morzem.</p>`
-    : `<div class="emoji-big">🌊</div><h1>Pochłonęła cię woda</h1><p class="lead">Dotarłeś na piętro ${floor} z ${ROWS}.</p>`;
+    ? `<div class="emoji-big">🌅</div><h1>Światło wróciło</h1><p class="lead">Serce Głębiny przestało bić, a Pradawny Lewiatan zatonął na dobre. Latarnia znów świeci nad morzem.</p>`
+    : `<div class="emoji-big">🌊</div><h1>Pochłonęła cię woda</h1><p class="lead">Dotarłeś do aktu ${G.act}, piętro ${floor} z ${ROWS}.</p>`;
   G.players.forEach((p, i) => box.append(h('p', 'lead', `${isCoop() ? `Gracz ${i + 1} (${CHARACTERS[p.char].name}): ` : ''}talia: ${p.deck.length} kart · relikty: ${p.relics.length}`)));
   box.append(h('p', 'lead', `Złoto: ${G.gold}`));
   const b = h('button', 'btn primary', 'Zagraj ponownie');
@@ -527,3 +559,4 @@ ACTIONS.eventNext = () => {
   if (G.screen !== 'event' || !G.node.evResult) return;
   if (G.players.every(p => p.hp <= 0)) showEnd(false); else leaveNode();
 };
+ACTIONS.actStart = () => { if (G.screen === 'actintro') showMap(); };

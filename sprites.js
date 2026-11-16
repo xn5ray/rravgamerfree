@@ -25,7 +25,9 @@
    Klucze `minions`:    szkielet, widmo, utopiony, golem (sługi Nekromantki, ikona ok. 64×64)
    Klucze `orbs`:       blysk, szron, mrok, plazma (kule Automatu, ikona ok. 64×64)
    Klucze `enemies`:    krab, meduza, mewa, syrena, szkielet, osmiornica, rekin,
-                        topielec, straznik, serce
+                        topielec, straznik, serce (akt 1; pełna lista to klucze ENEMIES w data.js)
+                        akt 2: nurek, rozdymka, koral, muszla, latarnica, tryton, zjawa, wir,
+                        admiral, perla, chor, lewiatan
    Klucze `cards`:      id kart z CARDS w data.js (np. cios, gard, uderzenie, ...)
    Klucze `relics`:     id reliktów z RELICS (np. pierscien, kotwica, ...)
    Klucze `potions`:    id mikstur z POTIONS (np. zdrowie, sila, ...)

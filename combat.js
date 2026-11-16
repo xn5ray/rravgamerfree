@@ -45,9 +45,10 @@ function mkPlayerCombat(p) {
  */
 function startCombat(kind) {
   let ids;
-  if (kind === 'boss') ids = ['serce'];
-  else if (kind === 'elite') ids = [pick(ELITES)];
-  else ids = pick(G.node.f < 4 ? ENC_EASY : ENC_HARD);
+  const a2 = G.act === 2;
+  if (kind === 'boss') ids = [a2 ? 'lewiatan' : 'serce'];
+  else if (kind === 'elite') ids = [pick(a2 ? ELITES2 : ELITES)];
+  else ids = pick(G.node.f < 4 ? (a2 ? ENC2_EASY : ENC_EASY) : (a2 ? ENC2_HARD : ENC_HARD));
   C = {
     kind, enemies: ids.map(id => mkEnemy(id)), ps: G.players.map(mkPlayerCombat), ap: G.ap,
     turn: 0, selected: null, phase: 'player', busy: false, over: false
@@ -486,18 +487,19 @@ function winCombat() {
     if (hasRelic('pierscien')) heal(6);
     if (hasRelic('lza')) { G.max += 2; G.hp += 2; }
   }));
-  if (kind === 'boss') { showEnd(true); return; }
-  let gold = kind === 'elite' ? rnd(25, 35) : rnd(10, 20);
+  if (kind === 'boss' && G.act >= 2) { showEnd(true); return; }
+  const big = kind !== 'fight'; // elita i boss aktu 1 dają większą nagrodę
+  let gold = kind === 'boss' ? rnd(45, 60) : kind === 'elite' ? rnd(25, 35) : rnd(10, 20);
   if (G.players.some(p => p.relics.includes('sakiewka'))) gold += 10;
   if (n > 1) gold = Math.round(gold * COOP.goldScale);
   G.gold += gold;
   const pc = G.players.map((p, i) => withPlayer(i, () => ({
-    cards: cardChoices(3, kind === 'elite'),
-    potion: rand() < (kind === 'elite' ? 0.6 : 0.35) + (hasRelic('mapa') ? 0.25 : 0) ? pick(Object.keys(POTIONS)) : null,
+    cards: cardChoices(3, big),
+    potion: rand() < (big ? 0.6 : 0.35) + (hasRelic('mapa') ? 0.25 : 0) ? pick(Object.keys(POTIONS)) : null,
     taken: false
   })));
   let relic = null, relicFor = 0;
-  if (kind === 'elite') {
+  if (big) {
     relicFor = rnd(0, n - 1);
     withPlayer(relicFor, () => { relic = randomRelic(); if (relic) gainRelic(relic); });
   }

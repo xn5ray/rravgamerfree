@@ -84,7 +84,7 @@ const canSwitchView = () => !!G && !NET && isCoop() && ((C && !C.over) || SWITCH
 /* Odświeża bieżący ekran (po przełączeniu widoku gracza). */
 function refreshView() {
   if (C && !C.over) { renderCombat(); return; }
-  const f = { map: showMap, reward: () => showReward(), rest: showRest, shop: drawShop, event: showEvent }[G.screen];
+  const f = { map: showMap, actintro: showActIntro, reward: () => showReward(), rest: showRest, shop: drawShop, event: showEvent }[G.screen];
   if (f) f();
 }
 
@@ -258,7 +258,7 @@ function drawHud() {
   }
   hud.append(
     h('span', 'stat gold', `🪙 ${G.gold}`),
-    h('span', 'stat', `Piętro ${floor}/${ROWS}`)
+    h('span', 'stat', `Akt ${G.act} · Piętro ${floor}/${ROWS}`)
   );
   const relics = h('div', 'relics');
   G.relics.forEach(id => {
