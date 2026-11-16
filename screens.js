@@ -61,7 +61,7 @@ function startRun(charIds) {
   const coop = ids.length > 1;
   const players = ids.map(id => {
     const c = CHARACTERS[id];
-    return { char: id, hp: c.hp, max: c.hp, deck: c.deck.map(d => ({ id: d, up: false })), relics: [], potions: [], pasUsed: false };
+    return { char: id, hp: c.hp, max: c.hp, deck: c.deck.map(d => ({ id: d, up: false })), relics: [], potions: [], pasUsed: false, nextBlock: 0 };
   });
   const gold = ids.reduce((a, id) => a + CHARACTERS[id].gold, 0) / ids.length;
   G = { players, ap: NET ? NET.me : 0, act: 1, screen: 'map', gold: Math.round(gold * (coop ? COOP.goldScale : 1)), node: null, map: genMap(), removals: 0, reward: null };
@@ -364,59 +364,12 @@ function drawShopBody() {
 /* ---------- Wydarzenia ----------
    Wybór dotyczy gracza, który go zrobił. `pick` ('up' albo 'rm') oznacza, że wybierający wskazuje
    jeszcze kartę z własnej talii (trafia do fn jako `inst`). */
-const EVENTS = [
-  {
-    icon: '🚢', title: 'Wrak statku',
-    text: 'Z mielizny wystaje kadłub zatopionego statku. W ładowni coś błyszczy, ale pokład trzeszczy.',
-    choices: [
-      { label: 'Przeszukaj ładownię (+60 złota, −8 HP)', fn: done => { G.gold += 60; loseHpSafe(8); done('Znajdujesz mokrą sakiewkę. Deski kaleczą ci dłonie.'); } },
-      { label: 'Odejdź', fn: done => done('Zostawiasz wrak falom.') }
-    ]
-  },
-  {
-    icon: '🧜', title: 'Syrena w grocie',
-    text: 'Syrena zaprasza cię do wody. Obiecuje, że jej pieśń wyostrzy twój oręż. Za darmo nic nie dostaniesz.',
-    choices: [
-      { label: 'Oddaj krew (−7 HP, ulepsz kartę)', pick: 'up', fn: (done, inst) => {
-        loseHpSafe(7);
-        if (!inst) return done('Nie masz już czego ulepszać. Syrena śmieje się i znika.');
-        inst.up = true; done('Karta lśni zimnym światłem.');
-      } },
-      { label: 'Zatkaj uszy i odejdź', fn: done => done('Pieśń cichnie za twoimi plecami.') }
-    ]
-  },
-  {
-    icon: '📦', title: 'Zardzewiała skrzynia',
-    text: 'Skrzynia jest zamknięta na zardzewiały zamek. Może być pusta, a może pułapka.',
-    choices: [
-      { label: 'Otwórz (50%: relikt, 50%: −12 HP)', fn: done => {
-        if (rand() < 0.5) {
-          const r = randomRelic();
-          if (r) { gainRelic(r); return done(`W środku leży ${RELICS[r].icon} ${RELICS[r].name}.`); }
-          G.gold += 60; return done('W środku jest tylko 60 złota.');
-        }
-        loseHpSafe(12); done('Pułapka! Zardzewiałe ostrze rani ci ramię.');
-      } },
-      { label: 'Zostaw skrzynię', fn: done => done('Nie ryzykujesz.') }
-    ]
-  },
-  {
-    icon: '🕯️', title: 'Stara latarnia',
-    text: 'Na półpiętrze pali się knot. Możesz odpocząć przy jego świetle albo przetopić coś ze swojej talii.',
-    choices: [
-      { label: 'Odpocznij (lecz 15 HP)', fn: done => { heal(15); done('Światło koi rany.'); } },
-      { label: 'Pozbądź się karty (usuń kartę z talii)', pick: 'rm', fn: (done, inst) => {
-        if (!inst) return done('Masz zbyt małą talię.');
-        G.deck.splice(G.deck.indexOf(inst), 1); done('Karta znika w płomieniu.');
-      } }
-    ]
-  }
-];
-
 /* Lista kart, spośród których wybierający wskazuje kartę dla wyboru wydarzenia (puste: nie trzeba). */
+function eventUsable(c) { return (!c.pick || eventPickList(c).length > 0) && (!c.can || c.can()); }
 function eventPickList(c) {
   if (c.pick === 'up') return G.deck.filter(x => !x.up);
   if (c.pick === 'rm') return G.deck.length > 5 ? G.deck : [];
+  if (c.pick === 'dup') return G.deck;
   return [];
 }
 
@@ -447,10 +400,11 @@ function drawEvent() {
   const choices = h('div', 'choices');
   ev.choices.forEach((c, ci) => {
     const b = h('button', 'btn', c.label);
+    b.disabled = !eventUsable(c);
     b.onclick = () => {
-      const list = eventPickList(c);
-      if (c.pick && list.length) {
-        showDeck(list, c.pick === 'up' ? 'Wybierz kartę do ulepszenia' : 'Wybierz kartę do usunięcia', inst => act('eventChoice', ci, G.deck.indexOf(inst)));
+      if (c.pick) {
+        const title = { up: 'Wybierz kartę do ulepszenia', rm: 'Wybierz kartę do usunięcia', dup: 'Wybierz kartę do skopiowania' }[c.pick];
+        showDeck(eventPickList(c), title, inst => act('eventChoice', ci, G.deck.indexOf(inst)));
       } else act('eventChoice', ci, -1);
     };
     choices.append(b);
@@ -547,11 +501,11 @@ ACTIONS.eventChoice = (ci, di) => {
   if (G.screen !== 'event' || n.evResult) return;
   const c = EVENTS[n.eventIdx].choices[ci];
   if (!c) return;
+  if (!eventUsable(c)) return;
   let inst = null;
   if (c.pick) {
-    const list = eventPickList(c);
-    inst = di >= 0 && list.includes(G.deck[di]) ? G.deck[di] : null;
-    if (list.length && !inst) return;
+    inst = di >= 0 && eventPickList(c).includes(G.deck[di]) ? G.deck[di] : null;
+    if (!inst) return;
   }
   c.fn(text => { n.evResult = { text, by: G.ap }; showEvent(); }, inst);
 };

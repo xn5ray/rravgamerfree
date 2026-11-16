@@ -36,7 +36,7 @@ const screen = () => $('#screen');
    C.hand czy C.block są "delegowane" do aktywnego gracza (G.ap / C.ap), więc cały kod napisany
    dla jednego gracza działa dla aktualnie wybranego. Do innego gracza przechodzi się przez
    setActive() albo withPlayer(). Tryb solo to po prostu lista z jednym graczem. */
-const PLAYER_KEYS = ['char', 'hp', 'max', 'deck', 'relics', 'potions', 'pasUsed'];
+const PLAYER_KEYS = ['char', 'hp', 'max', 'deck', 'relics', 'potions', 'pasUsed', 'nextBlock'];
 const COMBAT_KEYS = ['draw', 'hand', 'discard', 'exhaust', 'energy', 'maxEnergy', 'block', 'st', 'orbs', 'slots', 'nextEnergy', 'minions', 'minionSlots', 'spawn', 'ready'];
 
 function delegate(obj, keys, listKey) {

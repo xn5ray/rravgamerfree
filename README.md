@@ -80,7 +80,7 @@ W menu wybierz **Online (P2P, 2 graczy)**. Gra jest współpracą jak w co-opie 
 - 54 karty (każda z ulepszeniem): 20 neutralnych oraz po 17 klasowych Automatu i Nekromantki
 - 22 relikty, 5 mikstur
 - Akt 1: 15 zwykłych przeciwników, 4 elity, boss. Akt 2: 8 zwykłych przeciwników, 3 elity, boss
-- 4 wydarzenia losowe
+- 24 wydarzenia losowe
 
 ## Dodawanie własnych sprite'ów
 
@@ -90,6 +90,15 @@ Gra domyślnie używa emoji. Własne obrazki dodajesz w pliku `sprites.js`, bez 
 2. W `sprites.js` wpisz ścieżkę pod kluczem z `data.js`, np. `characters: { latarnik: 'assets/latarnik.png' }` albo `enemies: { krab: 'assets/krab.png' }`.
 
 Można podmienić postacie, wrogów, ilustracje kart, relikty, mikstury, kule Automatu, sługi Nekromantki i ikony pól na mapie. Czego nie wpiszesz albo co się nie wczyta, zostaje emoji. Dla pixel artu ustaw `pixelArt: true`, wtedy obrazki nie są wygładzane. Pełna lista kluczy i zalecane rozmiary są w komentarzu na górze `sprites.js`.
+
+## Dodawanie wydarzeń
+
+W `events.js`, w tablicy `EVENTS`, dopisz obiekt: `icon`, `title`, `text` i `choices`. Każdy wybór to `{ label, fn }`. Funkcja `fn(done, inst)` robi efekt na graczu, który wybrał (`G.hp`, `G.gold`, `G.deck`...) i wywołuje `done('tekst wyniku')`. Dodatkowe pola wyboru:
+
+- `pick: 'up'`, `'rm'` albo `'dup'`: gracz wskazuje kartę do ulepszenia, usunięcia lub skopiowania, a ta trafia do `fn` jako `inst`.
+- `can: () => G.gold >= 50`: wybór jest nieaktywny, dopóki warunek nie jest spełniony (przy `pick` wystarczy, że jest jakaś karta).
+
+Są gotowe pomocniki: `loseHpSafe`, `heal`, `gainMax`, `randomRelic`/`relicOrGold`, `randomPotion`, `addCard('rare')`, `upgradeRandom`, `removeCard`. Losuj przez `rand()` i `pick()`, a nie `Math.random()`, bo tryb online liczy grę po obu stronach z tego samego seeda.
 
 ## Dodawanie postaci
 
@@ -105,6 +114,7 @@ W `data.js`, w obiekcie `CHARACTERS`, dopisz wpis (nazwa, ikona, HP, złoto, opi
 | `sprites.js` | przypisanie własnych obrazków |
 | `core.js` | wspólne narzędzia i interfejs |
 | `combat.js` | silnik walki |
-| `screens.js` | menu, mapa, nagrody, ognisko, sklep, wydarzenia |
+| `events.js` | wydarzenia losowe (tu dopisujesz nowe) |
+| `screens.js` | menu, mapa, nagrody, ognisko, sklep, ekrany wydarzeń |
 | `net.js` | gra online P2P (połączenie, lobby, synchronizacja akcji) |
 | `main.js` | start gry |
