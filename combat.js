@@ -81,6 +81,7 @@ function startTurn() {
 function startPlayerTurn() {
   C.ready = false;
   C.block = (C.turn === 1 && hasRelic('kotwica')) ? 10 : 0;
+  if (C.turn === 1 && G.nextBlock) { C.block += G.nextBlock; G.nextBlock = 0; } // pancerz z wydarzenia
   C.st.str += C.st.ritual;
   if (C.st.regen) { heal(C.st.regen); floatAt(playerEl(), `+${C.st.regen}`, 'heal'); }
   C.energy = C.maxEnergy + C.nextEnergy + (hasRelic('zegar') && C.turn % 3 === 0 ? 1 : 0);
