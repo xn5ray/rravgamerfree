@@ -3,9 +3,9 @@
    Te dane NIE są tajne (każda strona używająca Firebase je ujawnia), bezpieczeństwo zapewniają
    reguły bazy z pliku database.rules.json. */
 window.FIREBASE_CONFIG = {
-  apiKey: 'WKLEJ_API_KEY',
-  authDomain: 'WKLEJ_PROJECT_ID.firebaseapp.com',
-  databaseURL: 'https://WKLEJ_PROJECT_ID-default-rtdb.europe-west1.firebasedatabase.app',
-  projectId: 'WKLEJ_PROJECT_ID',
-  appId: 'WKLEJ_APP_ID'
+  apiKey: 'AIzaSyDBcnDy_nRHKa33zcxQh5ANtCQeHpgbvjk',
+  authDomain: 'latarnia-9af42.firebaseapp.com',
+  databaseURL: 'https://latarnia-9af42-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'latarnia-9af42',
+  appId: '1:521247426597:web:26c35293f1d405cef9d7cc'
 };
